@@ -4,10 +4,11 @@ A lightening fast, express-like C++ web server framework
 
 ## Features
 - Easy to use
-- Low memory footprint
 - High efficiency
+- Low memory footprint, ~2MB for a Hello World @ 140k qps \[[1](#cite-notes)\]
 - Built-in SSL/TLS & unix socket support
 - Streamed operations, useful for a big POST
+- Operations in middlewares can be blocking or nonblocking
 - Will not claim to let people love programming again
 - ...and more
 
@@ -50,3 +51,5 @@ Eventually, I decided to restart this project.
 
 It's 2019 now, the PHP style is pretty outdated, while express-like style works a better way. So this is a complete redesign.
 
+## Cite notes
+\[1\] Test environment: Linux kernel 5.0.5, GCC 7.4.0, libstdc++ 7.4.0, glibc 2.27, `wrk -t 8 -c 256`
