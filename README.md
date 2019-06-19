@@ -14,7 +14,10 @@ A lightening fast, express-like C++ web server framework
 - ...and more
 
 ## Usage
-For now, have a look at the examples in `Tests` directory. The documentation is on its way.
+See the [documentation](https://marisa.readthedocs.io). (WIP)
+
+Also remember to have a look at the examples in [Tests](https://github.com/ReimuNotMoe/Marisa/blob/master/Source/Tests/) directory.
+Especially [hello_lambda.cpp](https://github.com/ReimuNotMoe/Marisa/blob/master/Source/Tests/hello_lambda.cpp).
 
 ## Benchmarks
 See [benchmarks](Benchmark.md).

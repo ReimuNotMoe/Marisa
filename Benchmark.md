@@ -32,3 +32,19 @@
 - Photo:
 
 ![](https://raw.githubusercontent.com/ReimuNotMoe/ReimuNotMoe.github.io/master/images/marisa_benchmark_1.jpg)
+
+## Test 3: Awesome Gaming PC
+- Test: [HelloAsync](https://github.com/ReimuNotMoe/Marisa/blob/master/Source/Tests/hello_async.cpp)
+- Configuration: 16 TCP instances (`app.listen(8080, 16)`)
+- Hardware: Intel i9 9900K **(not overclocked)**, 64GB DDR4 3000MHz
+- Environment: Ubuntu 18.10 stock
+- CFLAGS: `-O2 -march=native`
+- Benchmark tool: [wrk](https://github.com/wg/wrk)
+- Test command: `wrk -c 256 -t 16 http://localhost:8080`
+
+### Results
+- Memory usage in benchmark: 5932 - 5156 = 776 KB
+- Queries per second (QPS): ~255k
+- Photo:
+
+![](https://raw.githubusercontent.com/ReimuNotMoe/ReimuNotMoe.github.io/master/images/marisa_benchmark_2.png)
