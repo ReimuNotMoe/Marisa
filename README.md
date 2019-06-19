@@ -28,6 +28,7 @@ See [benchmarks](Benchmark.md).
 ### Compile
 Nearly all my projects use CMake. It's very simple:
 
+    cd Source
     mkdir build
     cd build
     cmake ..

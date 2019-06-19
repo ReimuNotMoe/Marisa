@@ -76,8 +76,8 @@ SET_TARGET_PROPERTIES(local_base64 PROPERTIES COMPILE_FLAGS "-fPIC ${CMAKE_CXX_F
 add_library(marisa SHARED ${SOURCE_FILES})
 add_library(marisa_static STATIC ${SOURCE_FILES})
 set_target_properties(marisa_static PROPERTIES OUTPUT_NAME marisa)
-target_link_libraries(marisa pthread boost_system boost_thread z ssl crypto curl local_base64)
-target_link_libraries(marisa_static pthread boost_system boost_thread z ssl crypto curl local_base64)
+target_link_libraries(marisa pthread boost_system boost_thread z ssl crypto local_base64)
+target_link_libraries(marisa_static pthread boost_system boost_thread z ssl crypto local_base64)
 
 
 add_executable(test_Hello Tests/hello.cpp)

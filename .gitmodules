@@ -1,9 +1,9 @@
 [submodule "3rdParty/base64"]
-	path = 3rdParty/base64
+	path = Source/3rdParty/base64
 	url = https://github.com/aklomp/base64
 [submodule "3rdParty/multipart-parser"]
-	path = 3rdParty/multipart-parser
+	path = Source/3rdParty/multipart-parser
 	url = https://github.com/UltraCoderRU/multipart-parser
 [submodule "3rdParty/http-parser"]
-	path = 3rdParty/http-parser
+	path = Source/3rdParty/http-parser
 	url = https://github.com/nodejs/http-parser

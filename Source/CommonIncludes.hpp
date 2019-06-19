@@ -50,16 +50,11 @@
 
 #include <arpa/inet.h>
 
-#include <curl/curl.h>
-#include <curl/easy.h>
-
 #include <zlib.h>
 
 #include <boost/bind.hpp>
 #include <boost/asio.hpp>
 #include <boost/asio/ssl.hpp>
-#include <boost/program_options.hpp>
-#include <boost/algorithm/string/predicate.hpp>
 #include <boost/thread/thread.hpp>
 
 //#include "3rdParty/ThreadPool/ThreadPool.h"
