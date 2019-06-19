@@ -1,4 +1,5 @@
 # Marisa
+![pipeline status](https://gitlab.com/ReimuNotMoe/Marisa-Github/badges/master/pipeline.svg)
 
 A lightening fast, express-like C++ web server framework
 
