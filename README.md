@@ -5,7 +5,8 @@ A lightening fast, express-like C++ web server framework
 ## Features
 - Easy to use
 - High efficiency
-- Low memory footprint, ~2MB for a Hello World @ 140k qps \[[1](#cite-notes)\]
+- Multithreaded event-based I/O handling
+- Low memory footprint
 - Built-in SSL/TLS & unix socket support
 - Streamed operations, useful for a big POST
 - Operations in middlewares can be blocking or nonblocking
@@ -14,6 +15,9 @@ A lightening fast, express-like C++ web server framework
 
 ## Usage
 For now, have a look at the examples in `Tests` directory. The documentation is on its way.
+
+## Benchmarks
+See [benchmarks](Benchmark.md).
 
 ## Build
 ### Dependencies
@@ -50,6 +54,3 @@ But anyway, finally they decided to use some programming language that doesn't h
 Eventually, I decided to restart this project.
 
 It's 2019 now, the PHP style is pretty outdated, while express-like style works a better way. So this is a complete redesign.
-
-## Cite notes
-\[1\] Test environment: Linux kernel 5.0.5, GCC 7.4.0, libstdc++ 7.4.0, glibc 2.27, `wrk -t 8 -c 256`
