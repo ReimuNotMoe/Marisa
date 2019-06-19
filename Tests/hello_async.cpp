@@ -21,12 +21,17 @@
 using namespace Marisa::Application;
 using namespace Middlewares;
 
-int main() {
+int main(int argc, char **argv) {
 	App myapp2;
 
 	// Middlewares in an async route must not do blocking operations, otherwise the event loop will stuck
 	myapp2.route("/").async().on("GET").use(Simple("Hello Marisa!"));
 
-	myapp2.listen(8080, 10);
+	int nr_instances = 1;
+
+	if (argv[1])
+		nr_instances = strtol(argv[1], nullptr, 10);
+
+	myapp2.listen(8080, nr_instances);
 	myapp2.run();
 }
