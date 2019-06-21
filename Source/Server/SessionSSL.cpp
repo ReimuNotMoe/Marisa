@@ -143,7 +143,7 @@ void SessionSSL::async_write_impl() {
 
 	setup_timeout_timer();
 
-	boost::asio::async_write(ssl_socket, boost::asio::buffer(current_data.data(), current_data.size()),
+	boost::asio::async_write(ssl_socket, current_data.get(),
 				 io_strand.wrap([this, s = shared_from_this()](const boost::system::error_code &error, size_t size_written){
 					 auto& current_package = queue_write.front();
 					 current_package.second.set_value(error);

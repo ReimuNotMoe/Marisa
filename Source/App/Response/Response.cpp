@@ -33,14 +33,18 @@ ResponseContext::~ResponseContext() {
 #endif
 }
 
-static const std::string chunk_end = "\r\n";
-static const std::string chunk_all_end = "0\r\n\r\n";
+static const std::string chunk_end_str = "\r\n";
+static const std::string chunk_all_end_str = "0\r\n\r\n";
 
-static inline std::string chunk_header(size_t __size) {
-	std::string ret;
-	ret.resize(16);
-	snprintf((char *)ret.data(), 15, "%lX\r\n", __size);
-	ret.resize(strlen((const char *)ret.data()));
+static const Buffer chunk_all_end(std::string_view(chunk_all_end_str.data(), chunk_all_end_str.size()));
+static const Buffer chunk_end(std::string_view(chunk_end_str.data(), chunk_end_str.size()));
+
+static inline Buffer chunk_header(size_t __size) {
+	Buffer ret;
+	ret.vec = std::make_unique<std::vector<uint8_t>>(16);
+	ret.type = 2;
+	snprintf((char *)ret.vec->data(), 15, "%lX\r\n", __size);
+	ret.vec->resize(strlen((const char *)ret.vec->data()));
 
 	return ret;
 }
@@ -61,7 +65,7 @@ void ResponseContext::send_headers(uint16_t flags) {
 
 		headers["Content-Type"] = std::move(type);
 
-		sess->async_write(std::move(ce->http_generator->generate_headers(*this)));
+		sess->async_write(std::move(Buffer(std::move(ce->http_generator->generate_headers(*this)))));
 	}
 }
 
@@ -75,10 +79,10 @@ void ResponseContext::write(std::string __s, bool __blocking) {
 
 	send_headers(0x1);
 
-	buf_write = std::move(__s);
+	buf_write.assign(std::move(__s));
 
 	if (__blocking) {
-		sess->async_write(std::move(chunk_header(buf_write.size())));
+		sess->async_write((chunk_header(buf_write.size())));
 		sess->blocking_write(std::move(buf_write));
 		sess->async_write(chunk_end);
 	} else {
@@ -88,12 +92,84 @@ void ResponseContext::write(std::string __s, bool __blocking) {
 	}
 }
 
+
+void ResponseContext::write(std::vector<uint8_t> __s, bool __blocking) {
+	auto ce = static_cast<ContextExposed *>(context);
+	auto sess = ce->session;
+
+#ifdef DEBUG
+	LogD("%s[0x%016" PRIxPTR "]:\twrite called, size=%zu\n", "ResponseCtx", (uintptr_t)this, __s.size());
+#endif
+
+	send_headers(0x1);
+
+	buf_write.assign(std::move(__s));
+
+	if (__blocking) {
+		sess->async_write((chunk_header(buf_write.size())));
+		sess->blocking_write(std::move(buf_write));
+		sess->async_write(chunk_end);
+	} else {
+		sess->async_write(std::move(chunk_header(buf_write.size())));
+		sess->async_write(std::move(buf_write));
+		sess->async_write(chunk_end);
+	}
+}
+
+void ResponseContext::write(const void *__s, size_t __len, bool __blocking) {
+	auto ce = static_cast<ContextExposed *>(context);
+	auto sess = ce->session;
+
+#ifdef DEBUG
+	LogD("%s[0x%016" PRIxPTR "]:\twrite called, size=%zu\n", "ResponseCtx", (uintptr_t)this, __s.size());
+#endif
+
+	send_headers(0x1);
+
+	buf_write.assign(std::string_view((const char *)__s, __len));
+
+	if (__blocking) {
+		sess->async_write((chunk_header(buf_write.size())));
+		sess->blocking_write(std::move(buf_write));
+		sess->async_write(chunk_end);
+	} else {
+		sess->async_write(std::move(chunk_header(buf_write.size())));
+		sess->async_write(std::move(buf_write));
+		sess->async_write(chunk_end);
+	}
+}
+
+
 void ResponseContext::raw_write(std::string __s, bool __blocking) {
 	// Headers shouldn't be processed here due to incomplete Content-Length
 	auto ce = static_cast<ContextExposed *>(context);
 	auto sess = ce->session;
 
-	buf_write = std::move(__s);
+	buf_write.assign(std::move(__s));
+
+	if (__blocking)
+		sess->blocking_write(std::move(buf_write));
+	else
+		sess->async_write(std::move(buf_write));
+}
+
+void ResponseContext::raw_write(std::vector<uint8_t> __s, bool __blocking) {
+	auto ce = static_cast<ContextExposed *>(context);
+	auto sess = ce->session;
+
+	buf_write.assign(std::move(__s));
+
+	if (__blocking)
+		sess->blocking_write(std::move(buf_write));
+	else
+		sess->async_write(std::move(buf_write));
+}
+
+void ResponseContext::raw_write(const void *__s, size_t __len, bool __blocking) {
+	auto ce = static_cast<ContextExposed *>(context);
+	auto sess = ce->session;
+
+	buf_write.assign(std::string_view((const char *)__s, __len));
 
 	if (__blocking)
 		sess->blocking_write(std::move(buf_write));
@@ -113,6 +189,19 @@ void ResponseContext::send(std::string __s, bool __blocking) {
 	send_headers();
 	raw_write(std::move(__s), __blocking);
 }
+
+void ResponseContext::send(std::vector<uint8_t> __s, bool __blocking) {
+	headers["Content-Length"] = std::to_string(__s.size());
+	send_headers();
+	raw_write(std::move(__s), __blocking);
+}
+
+void ResponseContext::send(const void *__s, size_t __len, bool __blocking) {
+	headers["Content-Length"] = std::to_string(__len);
+	send_headers();
+	raw_write(__s, __len, __blocking);
+}
+
 
 void ResponseContext::send_file(const std::string &__file_path, size_t __buffer_size) {
 	MMap fmap(__file_path);
@@ -137,3 +226,7 @@ void ResponseContext::send_file(const std::string &__file_path, size_t __buffer_
 		pos += size_write;
 	}
 }
+
+
+
+

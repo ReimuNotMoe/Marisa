@@ -18,8 +18,9 @@
 
 #include "Compression.hpp"
 
+using namespace Middlewares;
 
-void Middlewares::Compression::handler() {
+void Compression::handler() {
 	context->response = std::make_unique<__compression_response_overrider>(context, settings, request, buf_size);
 
 	next();
@@ -72,14 +73,9 @@ void compress_memory(void *in_data, size_t in_data_size, std::vector<uint8_t> &o
 	out_data.swap(buffer);
 }
 
-void Middlewares::__compression_response_overrider::send(std::string __s, bool __blocking) {
-	if (!zlib_ctx_present) {
-		ResponseContext::send(std::move(__s), __blocking);
-		return;
-	}
-
-	zlib_strm.next_in = (Bytef *)__s.data();
-	zlib_strm.avail_in = __s.size();
+void __compression_response_overrider::compress_once(const void *__data, size_t __len) {
+	zlib_strm.next_in = (Bytef *)__data;
+	zlib_strm.avail_in = __len;
 	zlib_strm.next_out = (unsigned char *)buf.data();
 	zlib_strm.avail_out = buf_size;
 
@@ -108,17 +104,44 @@ void Middlewares::__compression_response_overrider::send(std::string __s, bool _
 	zlib_ctx_present = false;
 
 	buf.resize(buf.size()-zlib_strm.avail_out);
-	ResponseContext::send(std::move(buf), __blocking);
 }
 
-void Middlewares::__compression_response_overrider::write(std::string __s, bool __blocking) {
+void __compression_response_overrider::send(std::string __s, bool __blocking) {
 	if (!zlib_ctx_present) {
-		ResponseContext::write(std::move(__s), __blocking);
+		ResponseContext::send(std::move(__s), __blocking);
 		return;
 	}
 
-	zlib_strm.next_in = (Bytef *)__s.data();
-	zlib_strm.avail_in = __s.size();
+	compress_once(__s.data(), __s.size());
+
+	ResponseContext::send(std::move(buf), __blocking);
+}
+
+void __compression_response_overrider::send(std::vector<uint8_t> __s, bool __blocking) {
+	if (!zlib_ctx_present) {
+		ResponseContext::send(std::move(__s), __blocking);
+		return;
+	}
+
+	compress_once(__s.data(), __s.size());
+
+	ResponseContext::send(std::move(buf), __blocking);
+}
+
+void __compression_response_overrider::send(const void *__s, size_t __len, bool __blocking) {
+	if (!zlib_ctx_present) {
+		ResponseContext::send(std::move(__s), __blocking);
+		return;
+	}
+
+	compress_once(__s, __len);
+
+	ResponseContext::send(std::move(buf), __blocking);
+}
+
+void __compression_response_overrider::compress_stream(const void *__data, size_t __len, bool __blocking) {
+	zlib_strm.next_in = (Bytef *)__data;
+	zlib_strm.avail_in = __len;
 	zlib_strm.next_out = (unsigned char *)buf.data();
 	zlib_strm.avail_out = buf_size;
 
@@ -142,10 +165,36 @@ void Middlewares::__compression_response_overrider::write(std::string __s, bool 
 		ResponseContext::write(std::move(buf), __blocking);
 		buf.resize(buf_size);
 	}
-
 }
 
-void Middlewares::__compression_response_overrider::end() {
+void __compression_response_overrider::write(std::string __s, bool __blocking) {
+	if (!zlib_ctx_present) {
+		ResponseContext::write(std::move(__s), __blocking);
+		return;
+	}
+
+	compress_stream(__s.data(), __s.size(), __blocking);
+}
+
+void __compression_response_overrider::write(std::vector<uint8_t> __s, bool __blocking) {
+	if (!zlib_ctx_present) {
+		ResponseContext::write(std::move(__s), __blocking);
+		return;
+	}
+
+	compress_stream(__s.data(), __s.size(), __blocking);
+}
+
+void __compression_response_overrider::write(const void *__s, size_t __len, bool __blocking) {
+	if (!zlib_ctx_present) {
+		ResponseContext::write(std::move(__s), __blocking);
+		return;
+	}
+
+	compress_stream(__s, __len, __blocking);
+}
+
+void __compression_response_overrider::end() {
 	if (zlib_ctx_present) {
 		zlib_strm.next_out = (unsigned char *) buf.data();
 		zlib_strm.avail_out = buf_size;
@@ -177,7 +226,7 @@ void Middlewares::__compression_response_overrider::end() {
 	ResponseContext::end();
 }
 
-void Middlewares::__compression_response_overrider::decide_encoding() {
+void __compression_response_overrider::decide_encoding() {
 	auto it = request->headers_lowercase.find("accept-encoding");
 	if (it == request->headers_lowercase.end()) {
 		return;
@@ -236,7 +285,7 @@ void Middlewares::__compression_response_overrider::decide_encoding() {
 	}
 }
 
-Middlewares::__compression_response_overrider::__compression_response_overrider(Context *__context,
+__compression_response_overrider::__compression_response_overrider(Context *__context,
 										Middlewares::CompFlags __f,
 										Request::RequestContext *__req,
 										size_t __buf_size) :
@@ -253,10 +302,12 @@ Middlewares::__compression_response_overrider::__compression_response_overrider(
 	decide_encoding();
 }
 
-Middlewares::__compression_response_overrider::~__compression_response_overrider() {
+__compression_response_overrider::~__compression_response_overrider() {
 #ifdef DEBUG
 	LogD("%s[0x%016" PRIxPTR "]:\tdestructor called\n", "Compression", (uintptr_t)this);
 #endif
 	if (zlib_ctx_present)
 		deflateEnd(&zlib_strm);
 }
+
+

@@ -58,7 +58,7 @@ set(SOURCE_FILES
         Protocol/HTTP/HTTP1/Generator.cpp Protocol/HTTP/HTTP1/Generator.hpp
 
         3rdParty/http-parser/http_parser.h 3rdParty/http-parser/http_parser.c
-        )
+       )
 
 include(GNUInstallDirs)
 

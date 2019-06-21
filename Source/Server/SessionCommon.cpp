@@ -133,7 +133,7 @@ std::vector<uint8_t> Session::blocking_read(size_t __buf_size) {
 	return *result.second;
 }
 
-std::future<boost::system::error_code> Session::arrange_async_write(std::shared_ptr<Session> &keeper, std::shared_ptr<std::string>& __data) {
+std::future<boost::system::error_code> Session::arrange_async_write(std::shared_ptr<Session> &keeper, std::shared_ptr<Buffer>& __data) {
 	auto &ref = queue_write.emplace_back();
 	ref.first = std::move(*__data);
 	auto f = ref.second.get_future();
@@ -145,13 +145,13 @@ std::future<boost::system::error_code> Session::arrange_async_write(std::shared_
 	return f;
 }
 
-std::future<std::future<boost::system::error_code>> Session::async_write(std::string __data) {
-	auto sptr = std::make_shared<std::string>(std::move(__data));
+std::future<std::future<boost::system::error_code>> Session::async_write(Buffer __data) {
+	auto sptr = std::make_shared<Buffer>(std::move(__data));
 	return post_future_to_strand(io_strand, boost::bind(&Session::arrange_async_write, this, my_shared_from_this(), sptr));
 }
 
 
-void Session::blocking_write(std::string __data) {
+void Session::blocking_write(Buffer __data) {
 #ifdef DEBUG
 	LogD("%s[0x%016" PRIxPTR "]:\tblocking_write started\n", ModuleName, (uintptr_t)this);
 #endif
@@ -167,21 +167,6 @@ void Session::blocking_write(std::string __data) {
 #ifdef DEBUG
 	LogD("%s[0x%016" PRIxPTR "]:\tblocking_write done\n", ModuleName, (uintptr_t)this);
 #endif
-}
-
-void Session::handler_timeout(const boost::system::error_code& error) {
-	if (error == boost::asio::error::operation_aborted) {
-		// DO NOT TOUCH MEMORY HERE
-#ifdef DEBUG
-		LogD("%s[0x%016" PRIxPTR "]:\tio_timer cancelled\n", "Session???", (uintptr_t)this);
-#endif
-	} else {
-#ifdef DEBUG
-		LogD("%s[0x%016" PRIxPTR "]:\tsocket timeout\n", ModuleName, (uintptr_t)this);
-#endif
-		app_ctx->state = 0;
-		close_socket();
-	}
 }
 
 void Session::error_action(const boost::system::error_code &__err_code) {

@@ -162,11 +162,12 @@ void Context::use_default_status_page(const HTTP::Status &__status) {
 	ResponseContext rsp_ctx(this);
 	rsp_ctx.status = __status;
 
-	auto page = http_status_page(__status);
+	auto page = http_status_page_v(__status);
 	rsp_ctx.headers["Content-Length"] = std::to_string(page.size());
 
-	session->async_write(std::move(http_generator->generate_all(rsp_ctx)));
-	session->async_write(std::move(page));
+
+	session->async_write(std::move(Buffer(std::move(http_generator->generate_all(rsp_ctx)))));
+	session->async_write(std::move(Buffer(std::move(page))));
 }
 
 void Context::container_thread(Context *__ctx, void *__session_sptr) {
@@ -240,6 +241,9 @@ bool Context::init_handler_data() {
 }
 
 Context::Context(AppExposed &__ref_app) : app(__ref_app) {
+//	this.http_parser = std::unique_ptr<HTTP1::Parser, std::function<void(HTTP1::Parser*)>>(new (memory) HTTP1::Parser(), [](HTTP1::Parser *p){
+////		p->~Parser();
+//	});
 	http_parser = std::make_unique<HTTP1::Parser>();
 	http_generator = std::make_unique<HTTP1::Generator>();
 }

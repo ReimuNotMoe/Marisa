@@ -55,6 +55,8 @@
 #include <boost/bind.hpp>
 #include <boost/asio.hpp>
 #include <boost/asio/ssl.hpp>
+#include <boost/asio/buffer.hpp>
+#include <boost/asio/system_timer.hpp>
 #include <boost/thread/thread.hpp>
 
 //#include "3rdParty/ThreadPool/ThreadPool.h"

@@ -24,10 +24,12 @@
 #include "../../Types/Date.hpp"
 #include "../../Protocol/HTTP/Status.hpp"
 #include "../../Log/Log.hpp"
+#include "../../Server/Buffer.hpp"
 
 using namespace Marisa::Types;
 using namespace Marisa::Protocol;
 using namespace Marisa::Log;
+using namespace Marisa::Server;
 
 namespace Marisa {
 	namespace Application {
@@ -41,7 +43,7 @@ namespace Marisa {
 
 			class ResponseContext {
 			protected:
-				std::string buf_write;
+				Buffer buf_write;
 				bool headers_sent = false;
 
 			public:
@@ -52,9 +54,19 @@ namespace Marisa {
 				Context *context = nullptr;
 
 				virtual void raw_write(std::string __s, bool __blocking = false);
+				virtual void raw_write(std::vector<uint8_t> __s, bool __blocking = false);
+				virtual void raw_write(const void *__s, size_t __len, bool __blocking = false);
+
 				virtual void write(std::string __s, bool __blocking = false);
+				virtual void write(std::vector<uint8_t> __s, bool __blocking = false);
+				virtual void write(const void *__s, size_t __len, bool __blocking = false);
+
 				virtual void end();
+
 				virtual void send(std::string __s, bool __blocking = false);
+				virtual void send(std::vector<uint8_t> __s, bool __blocking = false);
+				virtual void send(const void *__s, size_t __len, bool __blocking = false);
+
 				virtual void send_headers(uint16_t flags = 0);
 				virtual void send_file(const std::string& __file_path, size_t __buffer_size = 16384);
 

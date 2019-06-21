@@ -26,6 +26,7 @@
 #include "../Log/Log.hpp"
 #include "ConnectionContext.hpp"
 #include "Instance.hpp"
+#include "Buffer.hpp"
 
 using namespace Marisa::Log;
 using namespace Marisa::Application;
@@ -53,10 +54,10 @@ namespace Marisa {
 			std::unique_ptr<Application::ContextExposed> app_ctx;
 			boost::asio::io_service &io_service;
 			boost::asio::io_service::strand io_strand;
-			boost::asio::deadline_timer io_timeout_timer;
-			boost::posix_time::seconds io_timeout_duration;
+			boost::asio::system_timer io_timeout_timer;
+			std::chrono::seconds io_timeout_duration;
 
-			std::deque<std::pair<std::string, std::promise<boost::system::error_code>>> queue_write;
+			std::deque<std::pair<Buffer, std::promise<boost::system::error_code>>> queue_write;
 
 			virtual void decide_io_action_in_read();
 			virtual void decide_io_action_in_write();
@@ -78,8 +79,6 @@ namespace Marisa {
 
 			virtual void start() = 0;
 
-
-
 			virtual std::future<std::future<std::pair<boost::system::error_code, std::shared_ptr<std::vector<uint8_t>>>>> async_read(size_t __buf_size = 4096);
 			virtual void inline_async_read();
 			virtual std::vector<uint8_t> blocking_read(size_t __buf_size = 4096);
@@ -89,9 +88,9 @@ namespace Marisa {
 			virtual std::future<std::pair<boost::system::error_code, std::shared_ptr<std::vector<uint8_t>>>> async_read_impl(std::shared_ptr<Session>& __session_keeper, size_t __buf_size) = 0;
 
 
-			virtual std::future<boost::system::error_code> arrange_async_write(std::shared_ptr<Session>& keeper, std::shared_ptr<std::string>& __data);
-			virtual std::future<std::future<boost::system::error_code>> async_write(std::string __data);
-			virtual void blocking_write(std::string __data);
+			virtual std::future<boost::system::error_code> arrange_async_write(std::shared_ptr<Session>& keeper, std::shared_ptr<Buffer>& __data);
+			virtual std::future<std::future<boost::system::error_code>> async_write(Buffer __data);
+			virtual void blocking_write(Buffer __data);
 
 			virtual void async_write_impl() = 0;
 
@@ -99,8 +98,6 @@ namespace Marisa {
 
 			virtual void close_socket();
 			virtual void close_socket_impl(std::shared_ptr<Session>& keeper) = 0;
-
-			void handler_timeout(const boost::system::error_code& error);
 
 			virtual int fd() = 0;
 

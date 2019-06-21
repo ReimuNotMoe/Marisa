@@ -21,100 +21,62 @@
 
 #include "../CommonIncludes.hpp"
 
-// Deprecated, keep for future use
+// Strive for zero copy!
 
 namespace Marisa {
 	namespace Server {
 		class Buffer {
 		private:
-			static void buf_deleter(uint8_t *p) {
-				if (*p) {
-					auto *s = *(std::string **)(p+1);
-					delete s;
-				} else {
-					auto *v = *(std::vector<uint8_t> **)(p+1);
-					delete v;
-				}
-
-				delete[] p;
-			}
-
-			std::deque<std::unique_ptr<uint8_t, decltype(&buf_deleter)>> super_buffer;
-			std::deque<std::vector<uint8_t>> buf;
-			size_t pos = 0;
-
-			static std::unique_ptr<uint8_t, decltype(&buf_deleter)> new_buf(uint8_t type, void *ptr) {
-				auto buf = new uint8_t[sizeof(void *) + 1];
-				buf[0] = type;
-				auto pptr = (void **)(buf+1);
-				pptr[0] = ptr;
-
-				return {buf, &buf_deleter};
-			}
-
-
 
 		public:
 			Buffer() = default;
 
-			void Enqueue(void *__buf, size_t __len) {
-				auto vec = new std::vector<uint8_t>((uint8_t *)__buf, (uint8_t *)__buf + __len);
-				super_buffer.emplace_back(new_buf(0, vec));
+			explicit Buffer(std::vector<uint8_t> __vec) {
+				assign(std::move(__vec));
 			}
 
-			void Enqueue(const std::vector<uint8_t> &__buf) {
-				auto vec = new std::vector<uint8_t>(__buf);
-				super_buffer.emplace_back(new_buf(0, vec));
+			explicit Buffer(std::string __str) {
+				assign(std::move(__str));
 			}
 
-			void Enqueue(const std::string &__buf) {
-				auto str = new std::string(__buf);
-				super_buffer.emplace_back(new_buf(1, str));
+			explicit Buffer(std::string_view __sv) {
+				assign(__sv);
 			}
 
-			std::pair<ssize_t, int> Write(int fd) {
-				if (super_buffer.empty())
-					return {-2, -2};
-
-
-				const uint8_t *cbuf = nullptr;
-				size_t csize = 0;
-
-				auto it = super_buffer.begin();
-				auto ptr = it->get();
-
-				if (ptr[0]) {
-					auto *s = *(std::string **)(ptr+1);
-					cbuf = (const uint8_t *)s->c_str();
-					csize = s->size();
-				} else {
-					auto *v = *(std::vector<uint8_t> **)(ptr+1);
-					cbuf = (const uint8_t *)v->data();
-					csize = v->size();
-				}
-
-				size_t cleft = csize - pos;
-
-				ssize_t rc = write(fd, cbuf + pos, cleft);
-				int buf_err = errno;
-
-				if ((size_t)rc == cleft) {
-					super_buffer.erase(super_buffer.begin());
-					pos = 0;
-				} else if (rc > 0) {
-					pos += rc;
-				}
-
-				return {rc, buf_err};
+			Buffer(const Buffer& o) {
+				assign(o);
 			}
 
-//			void Trim() {
-//				buf.erase(buf.begin(), buf.begin() + pos);
-//			}
-//
-//			size_t RemainingLength() {
-//				return buf.size() - pos;
-//			}
+			Buffer(Buffer&& o) noexcept {
+				move_assign(o);
+			}
+
+			Buffer& operator= (const Buffer& o) {
+				assign(o);
+				return *this;
+			}
+
+			Buffer& operator= (Buffer&& o) noexcept {
+				move_assign(o);
+				return *this;
+			}
+
+			int type = 0;
+
+			std::unique_ptr<std::vector<uint8_t>> vec;
+			std::unique_ptr<std::string> str;
+			std::unique_ptr<std::string_view> sv;
+
+			void assign(const Buffer& o);
+
+			void move_assign(Buffer& o) noexcept;
+
+			void assign(std::vector<uint8_t> __vec);
+			void assign(std::string __str);
+			void assign(std::string_view __sv);
+
+			boost::asio::mutable_buffers_1 get() const;
+			size_t size() const;
 		};
 	}
 }

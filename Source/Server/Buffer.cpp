@@ -18,4 +18,63 @@
 
 #include "Buffer.hpp"
 
-// Deprecated, keep for future use
+using namespace Marisa::Server;
+
+boost::asio::mutable_buffers_1 Buffer::get() const {
+	if (type == 1)
+		return boost::asio::buffer(str->data(), str->size());
+	else if (type == 2)
+		return boost::asio::buffer(vec->data(), vec->size());
+	else if (type == 3)
+		return boost::asio::buffer((void *)sv->data(), sv->size());
+	else
+		return boost::asio::buffer((void *)nullptr, 0);
+}
+
+size_t Buffer::size() const {
+	if (type == 1)
+		return str->size();
+	else if (type == 2)
+		return vec->size();
+	else if (type == 3)
+		return sv->size();
+	else
+		return 0;
+}
+
+void Buffer::assign(std::string __str) {
+	type = 1;
+	str = std::make_unique<std::string>(std::move(__str));
+}
+
+void Buffer::assign(std::vector<uint8_t> __vec) {
+	type = 2;
+	vec = std::make_unique<std::vector<uint8_t>>(std::move(__vec));
+}
+
+void Buffer::assign(std::string_view __sv) {
+	type = 3;
+	sv = std::make_unique<std::string_view>(__sv);
+}
+
+void Buffer::move_assign(Buffer &o) noexcept {
+	type = o.type;
+
+	if (type == 1)
+		str = std::move(o.str);
+	else if (type == 2)
+		vec = std::move(o.vec);
+	else if (type == 3)
+		sv = std::move(o.sv);
+}
+
+void Buffer::assign(const Buffer &o) {
+	type = o.type;
+
+	if (type == 1)
+		str = std::make_unique<std::string>(*o.str);
+	else if (type == 2)
+		vec = std::make_unique<std::vector<uint8_t>>(*o.vec);
+	else if (type == 3)
+		sv = std::make_unique<std::string_view>(*o.sv);
+}

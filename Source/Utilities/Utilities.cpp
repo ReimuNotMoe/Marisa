@@ -105,7 +105,7 @@ std::string Utilities::http_status_page(const HTTP::Status &status) {
 
 
 std::vector<uint8_t> Utilities::http_status_page_v(const HTTP::Status &status) {
-	std::vector<uint8_t> ret;
+	std::vector<uint8_t> ret(1024);
 
 	http_status_page_v(ret, status);
 

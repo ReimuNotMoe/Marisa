@@ -38,9 +38,13 @@ namespace Marisa::Application::Middlewares {
 		bool zlib_ctx_present = false;
 
 
-		std::string buf;
+		std::vector<uint8_t> buf;
 		size_t buf_size;
 		z_stream zlib_strm;
+
+		void compress_once(const void *__data, size_t __len);
+		void compress_stream(const void *__data, size_t __len, bool __blocking);
+
 
 	public:
 
@@ -50,7 +54,13 @@ namespace Marisa::Application::Middlewares {
 //		void finish_encoding();
 
 		void send(std::string __s, bool __blocking = false) override;
+		void send(std::vector<uint8_t> __s, bool __blocking = false) override;
+		void send(const void *__s, size_t __len, bool __blocking = false) override;
+
 		void write(std::string __s, bool __blocking = false) override;
+		void write(std::vector<uint8_t> __s, bool __blocking = false) override;
+		void write(const void *__s, size_t __len, bool __blocking = false) override;
+
 		void end() override;
 
 		~__compression_response_overrider() override;

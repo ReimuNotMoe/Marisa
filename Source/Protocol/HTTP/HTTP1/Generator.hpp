@@ -29,9 +29,10 @@ namespace Marisa {
 			protected:
 			public:
 				Generator() = default;
+				~Generator() = default;
 
-				std::string generate_headers(ResponseContext& resp_ctx) override;
-				std::string generate_all(ResponseContext& resp_ctx) override;
+				std::vector<uint8_t> generate_headers(ResponseContext& resp_ctx) override;
+				std::vector<uint8_t> generate_all(ResponseContext& resp_ctx) override;
 			};
 		}
 

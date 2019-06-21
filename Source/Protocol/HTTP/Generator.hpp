@@ -39,8 +39,8 @@ namespace Marisa {
 
 				int keepalive_config[2] = {-1};
 
-				virtual std::string generate_all(ResponseContext& resp_ctx) = 0;
-				virtual std::string generate_headers(ResponseContext& resp_ctx) = 0;
+				virtual std::vector<uint8_t> generate_all(ResponseContext& resp_ctx) = 0;
+				virtual std::vector<uint8_t> generate_headers(ResponseContext& resp_ctx) = 0;
 
 			};
 		}

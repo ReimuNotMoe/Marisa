@@ -45,6 +45,7 @@ namespace Marisa {
 				int flags = 0;
 
 				Parser() = default;
+				virtual ~Parser() = default;
 
 				virtual ssize_t parse(const char *data, size_t len) = 0;
 
