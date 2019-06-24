@@ -30,6 +30,7 @@ set(SOURCE_FILES
         App/Middlewares/Redirection.cpp App/Middlewares/Redirection.hpp
         App/Middlewares/Simple.cpp App/Middlewares/Simple.hpp
         App/Middlewares/Lambda.cpp App/Middlewares/Lambda.hpp
+        App/Middlewares/Websocket.cpp App/Middlewares/Websocket.hpp
 
         Types/Date.cpp Types/Date.hpp
         Types/MMap.cpp Types/MMap.hpp
@@ -58,7 +59,7 @@ set(SOURCE_FILES
         Protocol/HTTP/HTTP1/Generator.cpp Protocol/HTTP/HTTP1/Generator.hpp
 
         3rdParty/http-parser/http_parser.h 3rdParty/http-parser/http_parser.c
-       )
+        )
 
 include(GNUInstallDirs)
 

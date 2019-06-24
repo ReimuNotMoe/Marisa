@@ -16,31 +16,4 @@
     along with this program.  If not, see <https://www.gnu.org/licenses/>.
 */
 
-#ifndef MARISA_APPMW_LAMBDA_HPP
-#define MARISA_APPMW_LAMBDA_HPP
-
-#include "CommonIncludes.hpp"
-
-namespace Marisa::Application::Middlewares {
-	class Lambda : public Middleware {
-	public:
-
-		std::function<void(Request::RequestContext *, Response::ResponseContext *, Context *)> func;
-//		void (*func)(Request::RequestContext *, Response::ResponseContext *, Context *) = nullptr;
-
-		explicit Lambda(std::function<void(Request::RequestContext *, Response::ResponseContext *, Context *)> __func) {
-			func = std::move(__func);
-		}
-
-		void handler() override {
-			func(request, response, context);
-		}
-
-		std::unique_ptr<Middleware> New() const override {
-			return std::make_unique<Lambda>(func);
-		}
-
-	};
-}
-
-#endif //MARISA_APPMW_LAMBDA_HPP
+#include "Websocket.hpp"
