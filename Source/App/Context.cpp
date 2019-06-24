@@ -130,7 +130,7 @@ void Context::process_request_data(uint8_t *__buf, size_t __len) {
 		}
 
 		// Read entire request if not streamed
-		if (!route->streamed) {
+		if (!route->mode_streamed) {
 			state |= FLAG_NOT_STREAMED;
 
 			if (!determine_hp_state()) { // Check again
@@ -142,9 +142,29 @@ void Context::process_request_data(uint8_t *__buf, size_t __len) {
 
 	// Run App
 	// Route declared async, run it here
-	if (route->asynced) {
-		next();
+	if (route->mode_no_yield) {
+		try {
+			next();
+		} catch (std::exception &e) {
+			auto hpos = handlers->pos_cur_handler;
+			LogE("%s[0x%016" PRIxPTR "]:\tuncaught exception in middleware #%zu at %p: %s\n", ModuleName, (uintptr_t)this, hpos, handlers->middleware_list[hpos].get(), e.what());
+		}
 		response.reset();
+	} else if (route->mode_async) {
+		boost::asio::spawn(session->io_strand, [this](boost::asio::yield_context yield){
+			std::shared_ptr<Session> *sptr = new std::shared_ptr<Session>(session->my_shared_from_this());
+			state |= STATE_THREAD_RUNNING;
+			response->yield_context = &yield;
+			try {
+				next();
+			} catch (std::exception &e) {
+				auto hpos = handlers->pos_cur_handler;
+				LogE("%s[0x%016" PRIxPTR "]:\tuncaught exception in middleware #%zu at %p: %s\n", ModuleName, (uintptr_t)this, hpos, handlers->middleware_list[hpos].get(), e.what());
+			}
+			response.reset();
+			state &= ~STATE_THREAD_RUNNING;
+			delete sptr;
+		});
 	} else { // Run in thread
 		std::shared_ptr<Session> *sptr = new std::shared_ptr<Session>(session->my_shared_from_this());
 		container = std::thread(&ContextExposed::container_thread, this, sptr);
@@ -166,8 +186,8 @@ void Context::use_default_status_page(const HTTP::Status &__status) {
 	rsp_ctx.headers["Content-Length"] = std::to_string(page.size());
 
 
-	session->async_write(std::move(Buffer(std::move(http_generator->generate_all(rsp_ctx)))));
-	session->async_write(std::move(Buffer(std::move(page))));
+	session->write_promised(std::move(Buffer(std::move(http_generator->generate_all(rsp_ctx)))));
+	session->write_promised(std::move(Buffer(std::move(page))));
 }
 
 void Context::container_thread(Context *__ctx, void *__session_sptr) {
@@ -177,7 +197,12 @@ void Context::container_thread(Context *__ctx, void *__session_sptr) {
 	LogD("%s[0x%016" PRIxPTR "]:\tcontainer_thread: started\n", ModuleName, (uintptr_t)__ctx);
 #endif
 
-	__ctx->next();
+	try {
+		__ctx->next();
+	} catch (std::exception &e) {
+		auto hpos = __ctx->handlers->pos_cur_handler;
+		LogE("%s[0x%016" PRIxPTR "]:\tuncaught exception in middleware #%zu at %p: %s\n", ModuleName, (uintptr_t)__ctx, hpos, __ctx->handlers->middleware_list[hpos].get(), e.what());
+	}
 
 	__ctx->response.reset();
 
@@ -204,9 +229,9 @@ void Context::next() {
 		cur_mw->context = static_cast<ContextExposed *>(this);
 		cur_mw->reinit_pointers();
 
-		#ifdef DEBUG
+#ifdef DEBUG
 		LogD("%s[0x%016" PRIxPTR "]:\tcalling middleware #%zu at %p\n", ModuleName, (uintptr_t)this, h.pos_cur_handler, cur_mw.get());
-		#endif
+#endif
 
 		h.pos_cur_handler++;
 		cur_mw->handler();

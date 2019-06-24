@@ -52,8 +52,7 @@ namespace Marisa {
 			AppExposed& app;
 
 			std::unique_ptr<Application::ContextExposed> app_ctx;
-			boost::asio::io_service &io_service;
-			boost::asio::io_service::strand io_strand;
+
 			boost::asio::system_timer io_timeout_timer;
 			std::chrono::seconds io_timeout_duration;
 
@@ -68,6 +67,8 @@ namespace Marisa {
 		public:
 			size_t total_read_size = 0;
 
+			boost::asio::io_service &io_service;
+			boost::asio::io_service::strand io_strand;
 			std::unique_ptr<Socket> conn_ctx;
 			Instance& instance;
 
@@ -79,21 +80,24 @@ namespace Marisa {
 
 			virtual void start() = 0;
 
-			virtual std::future<std::future<std::pair<boost::system::error_code, std::shared_ptr<std::vector<uint8_t>>>>> async_read(size_t __buf_size = 4096);
+			virtual std::future<std::future<std::pair<boost::system::error_code, std::shared_ptr<std::vector<uint8_t>>>>> read_promised(
+				size_t __buf_size = 4096);
 			virtual void inline_async_read();
-			virtual std::vector<uint8_t> blocking_read(size_t __buf_size = 4096);
+			virtual std::vector<uint8_t> read_blocking(size_t __buf_size = 4096);
 
 
 			virtual void inline_async_read_impl() = 0;
-			virtual std::future<std::pair<boost::system::error_code, std::shared_ptr<std::vector<uint8_t>>>> async_read_impl(std::shared_ptr<Session>& __session_keeper, size_t __buf_size) = 0;
+			virtual std::future<std::pair<boost::system::error_code, std::shared_ptr<std::vector<uint8_t>>>> read_promised_impl(
+				std::shared_ptr<Session> &__session_keeper, size_t __buf_size) = 0;
 
 
 			virtual std::future<boost::system::error_code> arrange_async_write(std::shared_ptr<Session>& keeper, std::shared_ptr<Buffer>& __data);
-			virtual std::future<std::future<boost::system::error_code>> async_write(Buffer __data);
-			virtual void blocking_write(Buffer __data);
+			virtual std::future<std::future<boost::system::error_code>> write_promised(Buffer __data);
+			virtual size_t write_async(Buffer __data, boost::asio::yield_context& __yield_ctx);
+			virtual void write_blocking(Buffer __data);
 
-			virtual void async_write_impl() = 0;
-
+			virtual void write_promised_impl() = 0;
+			virtual size_t write_async_impl(Buffer __data, boost::asio::yield_context& __yield_ctx) = 0;
 
 
 			virtual void close_socket();
@@ -126,12 +130,14 @@ namespace Marisa {
 			void start() override;
 
 
-			std::future<std::pair<boost::system::error_code, std::shared_ptr<std::vector<uint8_t>>>> async_read_impl(std::shared_ptr<Session>& __session_keeper, size_t __buf_size) override;
+			std::future<std::pair<boost::system::error_code, std::shared_ptr<std::vector<uint8_t>>>> read_promised_impl(
+				std::shared_ptr<Session> &__session_keeper, size_t __buf_size) override;
 
 			void inline_async_read_impl() override;
 
+			void write_promised_impl() override;
 
-			void async_write_impl() override;
+			size_t write_async_impl(Buffer __data, boost::asio::yield_context& __yield_ctx) override;
 
 			void close_socket_impl(std::shared_ptr<Session>& keeper) override;
 
@@ -156,11 +162,14 @@ namespace Marisa {
 			void start() override;
 
 
-			std::future<std::pair<boost::system::error_code, std::shared_ptr<std::vector<uint8_t>>>> async_read_impl(std::shared_ptr<Session>& __session_keeper, size_t __buf_size) override;
+			std::future<std::pair<boost::system::error_code, std::shared_ptr<std::vector<uint8_t>>>> read_promised_impl(
+				std::shared_ptr<Session> &__session_keeper, size_t __buf_size) override;
 
 			void inline_async_read_impl() override;
 
-			void async_write_impl() override;
+			void write_promised_impl() override;
+
+			size_t write_async_impl(Buffer __data, boost::asio::yield_context& __yield_ctx) override;
 
 			void close_socket_impl(std::shared_ptr<Session>& keeper) override;
 
@@ -190,11 +199,14 @@ namespace Marisa {
 
 			void start() override;
 
-			std::future<std::pair<boost::system::error_code, std::shared_ptr<std::vector<uint8_t>>>> async_read_impl(std::shared_ptr<Session>& __session_keeper, size_t __buf_size) override;
+			std::future<std::pair<boost::system::error_code, std::shared_ptr<std::vector<uint8_t>>>> read_promised_impl(
+				std::shared_ptr<Session> &__session_keeper, size_t __buf_size) override;
 
 			void inline_async_read_impl() override;
 
-			void async_write_impl() override;
+			void write_promised_impl() override;
+
+			size_t write_async_impl(Buffer __data, boost::asio::yield_context& __yield_ctx) override;
 
 			void close_socket_impl(std::shared_ptr<Session>& keeper) override;
 

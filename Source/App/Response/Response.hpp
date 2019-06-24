@@ -32,6 +32,10 @@ using namespace Marisa::Log;
 using namespace Marisa::Server;
 
 namespace Marisa {
+	namespace Server {
+		class Session;
+	}
+
 	namespace Application {
 		class App;
 		class AppExposed;
@@ -46,12 +50,18 @@ namespace Marisa {
 				Buffer buf_write;
 				bool headers_sent = false;
 
+				virtual void do_write(bool __blocking);
+				virtual void do_raw_write(bool __blocking);
+
 			public:
 				std::unordered_map<std::string, std::string> headers;
 				HTTP::Status status;
 				Date date;
 				ssize_t length = -1;
 				Context *context = nullptr;
+				Session *session = nullptr;
+				boost::asio::yield_context *yield_context = nullptr;
+
 
 				virtual void raw_write(std::string __s, bool __blocking = false);
 				virtual void raw_write(std::vector<uint8_t> __s, bool __blocking = false);

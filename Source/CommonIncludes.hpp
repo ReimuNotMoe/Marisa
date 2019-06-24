@@ -52,10 +52,15 @@
 
 #include <zlib.h>
 
+// io_context is only supported by boost 1.67+, so we use the old API here
+// At least this is supported by boost 1.65 - 1.70
+#define BOOST_COROUTINES_NO_DEPRECATION_WARNING
+
 #include <boost/bind.hpp>
 #include <boost/asio.hpp>
 #include <boost/asio/ssl.hpp>
 #include <boost/asio/buffer.hpp>
+#include <boost/asio/spawn.hpp>
 #include <boost/asio/system_timer.hpp>
 #include <boost/thread/thread.hpp>
 

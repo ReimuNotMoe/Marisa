@@ -25,6 +25,8 @@ using namespace Marisa::Types;
 
 ResponseContext::ResponseContext(Context *__context) {
 	context = __context;
+	auto ce = static_cast<ContextExposed *>(context);
+	session = ce->session;
 }
 
 ResponseContext::~ResponseContext() {
@@ -65,9 +67,31 @@ void ResponseContext::send_headers(uint16_t flags) {
 
 		headers["Content-Type"] = std::move(type);
 
-		sess->async_write(std::move(Buffer(std::move(ce->http_generator->generate_headers(*this)))));
+		if (yield_context)
+			sess->write_async(std::move(Buffer(std::move(ce->http_generator->generate_headers(*this)))), *yield_context);
+		else
+			sess->write_promised(std::move(Buffer(std::move(ce->http_generator->generate_headers(*this)))));
 	}
 }
+
+void ResponseContext::do_write(bool __blocking) {
+	if (yield_context) {
+		session->write_async((chunk_header(buf_write.size())), *yield_context);
+		session->write_async(std::move(buf_write), *yield_context);
+		session->write_async(chunk_end, *yield_context);
+	} else {
+		if (__blocking) {
+			session->write_promised((chunk_header(buf_write.size())));
+			session->write_blocking(std::move(buf_write));
+			session->write_promised(chunk_end);
+		} else {
+			session->write_promised(std::move(chunk_header(buf_write.size())));
+			session->write_promised(std::move(buf_write));
+			session->write_promised(chunk_end);
+		}
+	}
+}
+
 
 void ResponseContext::write(std::string __s, bool __blocking) {
 	auto ce = static_cast<ContextExposed *>(context);
@@ -81,15 +105,7 @@ void ResponseContext::write(std::string __s, bool __blocking) {
 
 	buf_write.assign(std::move(__s));
 
-	if (__blocking) {
-		sess->async_write((chunk_header(buf_write.size())));
-		sess->blocking_write(std::move(buf_write));
-		sess->async_write(chunk_end);
-	} else {
-		sess->async_write(std::move(chunk_header(buf_write.size())));
-		sess->async_write(std::move(buf_write));
-		sess->async_write(chunk_end);
-	}
+	do_write(__blocking);
 }
 
 
@@ -105,15 +121,7 @@ void ResponseContext::write(std::vector<uint8_t> __s, bool __blocking) {
 
 	buf_write.assign(std::move(__s));
 
-	if (__blocking) {
-		sess->async_write((chunk_header(buf_write.size())));
-		sess->blocking_write(std::move(buf_write));
-		sess->async_write(chunk_end);
-	} else {
-		sess->async_write(std::move(chunk_header(buf_write.size())));
-		sess->async_write(std::move(buf_write));
-		sess->async_write(chunk_end);
-	}
+	do_write(__blocking);
 }
 
 void ResponseContext::write(const void *__s, size_t __len, bool __blocking) {
@@ -128,14 +136,18 @@ void ResponseContext::write(const void *__s, size_t __len, bool __blocking) {
 
 	buf_write.assign(std::string_view((const char *)__s, __len));
 
-	if (__blocking) {
-		sess->async_write((chunk_header(buf_write.size())));
-		sess->blocking_write(std::move(buf_write));
-		sess->async_write(chunk_end);
+	do_write(__blocking);
+}
+
+
+void ResponseContext::do_raw_write(bool __blocking) {
+	if (yield_context) {
+		session->write_async(std::move(buf_write), *yield_context);
 	} else {
-		sess->async_write(std::move(chunk_header(buf_write.size())));
-		sess->async_write(std::move(buf_write));
-		sess->async_write(chunk_end);
+		if (__blocking)
+			session->write_blocking(std::move(buf_write));
+		else
+			session->write_promised(std::move(buf_write));
 	}
 }
 
@@ -147,10 +159,7 @@ void ResponseContext::raw_write(std::string __s, bool __blocking) {
 
 	buf_write.assign(std::move(__s));
 
-	if (__blocking)
-		sess->blocking_write(std::move(buf_write));
-	else
-		sess->async_write(std::move(buf_write));
+	do_raw_write(__blocking);
 }
 
 void ResponseContext::raw_write(std::vector<uint8_t> __s, bool __blocking) {
@@ -159,10 +168,7 @@ void ResponseContext::raw_write(std::vector<uint8_t> __s, bool __blocking) {
 
 	buf_write.assign(std::move(__s));
 
-	if (__blocking)
-		sess->blocking_write(std::move(buf_write));
-	else
-		sess->async_write(std::move(buf_write));
+	do_raw_write(__blocking);
 }
 
 void ResponseContext::raw_write(const void *__s, size_t __len, bool __blocking) {
@@ -171,17 +177,17 @@ void ResponseContext::raw_write(const void *__s, size_t __len, bool __blocking) 
 
 	buf_write.assign(std::string_view((const char *)__s, __len));
 
-	if (__blocking)
-		sess->blocking_write(std::move(buf_write));
-	else
-		sess->async_write(std::move(buf_write));
+	do_raw_write(__blocking);
 }
 
 void ResponseContext::end() {
 	auto ce = static_cast<ContextExposed *>(context);
 	auto sess = ce->session;
 
-	sess->async_write(chunk_all_end);
+	if (yield_context)
+		sess->write_async(chunk_all_end, *yield_context);
+	else
+		sess->write_promised(chunk_all_end);
 }
 
 void ResponseContext::send(std::string __s, bool __blocking) {
@@ -226,6 +232,8 @@ void ResponseContext::send_file(const std::string &__file_path, size_t __buffer_
 		pos += size_write;
 	}
 }
+
+
 
 
 

@@ -100,11 +100,12 @@ void Session::setup_timeout_timer() {
 	});
 }
 
-std::future<std::future<std::pair<boost::system::error_code, std::shared_ptr<std::vector<uint8_t>>>>> Session::async_read(size_t __buf_size) {
+std::future<std::future<std::pair<boost::system::error_code, std::shared_ptr<std::vector<uint8_t>>>>> Session::read_promised(
+	size_t __buf_size) {
 
 	auto s = my_shared_from_this();
 	return post_future_to_strand(io_strand, [&](){
-		return async_read_impl(s, __buf_size);
+		return read_promised_impl(s, __buf_size);
 	});
 
 //	return post_future_to_strand(io_strand, boost::bind(&Session::async_read_impl, this, my_shared_from_this(), __buf_size));
@@ -114,11 +115,11 @@ void Session::inline_async_read() {
 	inline_async_read_impl();
 }
 
-std::vector<uint8_t> Session::blocking_read(size_t __buf_size) {
+std::vector<uint8_t> Session::read_blocking(size_t __buf_size) {
 #ifdef DEBUG
 	LogD("%s[0x%016" PRIxPTR "]:\tblocking_read started\n", ModuleName, (uintptr_t)this);
 #endif
-	auto f_queue = async_read(__buf_size);
+	auto f_queue = read_promised(__buf_size);
 	auto f_async_write = f_queue.get();
 	auto result = f_async_write.get();
 
@@ -139,24 +140,27 @@ std::future<boost::system::error_code> Session::arrange_async_write(std::shared_
 	auto f = ref.second.get_future();
 
 	if (queue_write.size() <= 1) {
-		async_write_impl();
+		write_promised_impl();
 	}
 
 	return f;
 }
 
-std::future<std::future<boost::system::error_code>> Session::async_write(Buffer __data) {
+std::future<std::future<boost::system::error_code>> Session::write_promised(Buffer __data) {
 	auto sptr = std::make_shared<Buffer>(std::move(__data));
 	return post_future_to_strand(io_strand, boost::bind(&Session::arrange_async_write, this, my_shared_from_this(), sptr));
 }
 
+size_t Session::write_async(Buffer __data, boost::asio::yield_context &__yield_ctx) {
+	return write_async_impl(std::move(__data), __yield_ctx);
+}
 
-void Session::blocking_write(Buffer __data) {
+void Session::write_blocking(Buffer __data) {
 #ifdef DEBUG
 	LogD("%s[0x%016" PRIxPTR "]:\tblocking_write started\n", ModuleName, (uintptr_t)this);
 #endif
 
-	auto f_queue = async_write(std::move(__data));
+	auto f_queue = write_promised(std::move(__data));
 	auto f_async_write = f_queue.get();
 	auto errr = f_async_write.get();
 
@@ -178,6 +182,7 @@ void Session::error_action(const boost::system::error_code &__err_code) {
 void Session::close_socket() {
 	io_strand.post(boost::bind(&Session::close_socket_impl, this, my_shared_from_this()));
 }
+
 
 
 
