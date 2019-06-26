@@ -151,8 +151,7 @@ void Context::process_request_data(uint8_t *__buf, size_t __len) {
 		}
 		response.reset();
 	} else if (route->mode_async) {
-		boost::asio::spawn(session->io_strand, [this](boost::asio::yield_context yield){
-			std::shared_ptr<Session> *sptr = new std::shared_ptr<Session>(session->my_shared_from_this());
+		boost::asio::spawn(session->io_strand, [this, s = std::shared_ptr<Session>(session->my_shared_from_this())](boost::asio::yield_context yield){
 			state |= STATE_THREAD_RUNNING;
 			response->yield_context = &yield;
 			try {
@@ -163,7 +162,6 @@ void Context::process_request_data(uint8_t *__buf, size_t __len) {
 			}
 			response.reset();
 			state &= ~STATE_THREAD_RUNNING;
-			delete sptr;
 		});
 	} else { // Run in thread
 		std::shared_ptr<Session> *sptr = new std::shared_ptr<Session>(session->my_shared_from_this());
