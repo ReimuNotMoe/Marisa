@@ -34,6 +34,11 @@ static const char __ModuleName_Session[] = "SessionSSL";
 InstanceSSL::InstanceSSL(Application::AppExposed &__ref_app) : InstanceTCP::InstanceTCP(__ref_app), ssl_ctx(boost::asio::ssl::context(boost::asio::ssl::context::tls)) {
 	ModuleName = __ModuleName;
 
+	LogW("WARNING!!! As of 2019-06-05, SM2 support has been added to OpenSSL, which may be used by boost::asio::ssl (in future).\n");
+	LogW("Please review your security needs, and use a reverse proxy which doesn't use OpenSSL if needed.\n");
+	LogW("More info:\n");
+	LogW("https://crypto.stackexchange.com/questions/9918/reasons-for-chinese-sm2-digital-signature-algorithm\n");
+
 	ssl_ctx.set_options(
 		boost::asio::ssl::context::default_workarounds
 		| boost::asio::ssl::context::no_sslv2
