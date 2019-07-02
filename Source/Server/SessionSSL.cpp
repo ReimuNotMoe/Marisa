@@ -73,7 +73,7 @@ void SessionSSL::handler_handshake(std::shared_ptr<SessionSSL>& __session_keeper
 	inline_async_read_impl();
 }
 
-std::future<std::pair<boost::system::error_code, std::shared_ptr<std::vector<uint8_t>>>> SessionSSL::async_read_impl(
+std::future<std::pair<boost::system::error_code, std::shared_ptr<std::vector<uint8_t>>>> SessionSSL::read_promised_impl(
 	std::shared_ptr<Session> &__session_keeper, size_t __buf_size) {
 	auto data = std::make_shared<std::vector<uint8_t>>(__buf_size);
 	auto promise = std::make_shared<std::promise<std::pair<boost::system::error_code, std::shared_ptr<std::vector<uint8_t>>>>>();
@@ -133,7 +133,11 @@ void SessionSSL::inline_async_read_impl() {
 #endif
 }
 
-void SessionSSL::async_write_impl() {
+size_t SessionSSL::write_async_impl(Buffer __data, boost::asio::yield_context &__yield_ctx) {
+	return boost::asio::async_write(ssl_socket, __data.get(), __yield_ctx);
+}
+
+void SessionSSL::write_promised_impl() {
 	const auto& current_package = queue_write.front();
 	auto& current_data = current_package.first;
 
@@ -159,7 +163,7 @@ void SessionSSL::async_write_impl() {
 #endif
 
 					 if (!queue_write.empty())
-						 async_write_impl();
+						 write_promised_impl();
 					 else
 						 decide_io_action_in_write();
 				 }));

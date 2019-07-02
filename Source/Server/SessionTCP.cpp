@@ -27,7 +27,7 @@ using namespace Marisa::Utilities;
 using namespace Marisa::Application;
 using namespace Marisa::Log;
 
-SessionTCP::SessionTCP(Instance& __ref_inst, size_t io_buf_size) : Session::Session(__ref_inst), tcp_socket(__ref_inst.io_svc) {
+SessionTCP::SessionTCP(Instance& __ref_inst, size_t io_buf_size) : Session::Session(__ref_inst), tcp_socket(__ref_inst.io_service) {
 	buffer_read.resize(io_buf_size);
 }
 
@@ -48,7 +48,8 @@ void SessionTCP::start() {
 	inline_async_read_impl();
 }
 
-std::future<std::pair<boost::system::error_code, std::shared_ptr<std::vector<uint8_t>>>> SessionTCP::async_read_impl(std::shared_ptr<Session>& __session_keeper, size_t __buf_size) {
+std::future<std::pair<boost::system::error_code, std::shared_ptr<std::vector<uint8_t>>>> SessionTCP::read_promised_impl(
+	std::shared_ptr<Session> &__session_keeper, size_t __buf_size) {
 	auto data = std::make_shared<std::vector<uint8_t>>(__buf_size);
 	auto promise = std::make_shared<std::promise<std::pair<boost::system::error_code, std::shared_ptr<std::vector<uint8_t>>>>>();
 
@@ -105,7 +106,11 @@ void SessionTCP::inline_async_read_impl() {
 #endif
 }
 
-void SessionTCP::async_write_impl() {
+size_t SessionTCP::write_async_impl(Buffer __data, boost::asio::yield_context &__yield_ctx) {
+	return boost::asio::async_write(tcp_socket, __data.get(), __yield_ctx);
+}
+
+void SessionTCP::write_promised_impl() {
 	const auto& current_package = queue_write.front();
 	auto& current_data = current_package.first;
 
@@ -131,7 +136,7 @@ void SessionTCP::async_write_impl() {
 #endif
 
 					 if (!queue_write.empty())
-						 async_write_impl();
+						 write_promised_impl();
 					 else
 						 decide_io_action_in_write();
 				 }));
@@ -142,11 +147,11 @@ void SessionTCP::async_write_impl() {
 }
 
 void SessionTCP::close_socket_impl(std::shared_ptr<Session>& keeper) {
-	try {
-		socket().close();
-	} catch (...) {
+	boost::system::error_code ec;
+	socket().shutdown(boost::asio::ip::tcp::socket::shutdown_both, ec);
+	if (ec)
+		LogE("%s[0x%016" PRIxPTR "]:\tclose_socket_impl: %s\n", ModuleName, (uintptr_t)this, ec.message().c_str());
 
-	}
 }
 
 std::shared_ptr<Session> SessionTCP::my_shared_from_this() {

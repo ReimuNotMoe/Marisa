@@ -16,16 +16,26 @@
     along with this program.  If not, see <https://www.gnu.org/licenses/>.
 */
 
+#include <iostream>
 #include "../Marisa.hpp"
 
 using namespace Marisa::Application;
 using namespace Middlewares;
 
+const char msg[] = "Hello Marisa!";
+
 int main(int argc, char **argv) {
 	App myapp2;
 
 	// Middlewares in an async route must not do blocking operations, otherwise the event loop will stuck
-	myapp2.route("/").async().on("GET").use(Simple("Hello Marisa!"));
+	myapp2.route("/").async().no_yield().on("GET").use(Lambda([](auto *req, auto *rsp, auto *ctx){
+		try {
+			rsp->send(msg, sizeof(msg)-1);
+		} catch (std::exception &e) {
+			std::cerr << "whoa! " << e.what() << "\n";
+		}
+
+	}));
 
 	int nr_instances = 1;
 

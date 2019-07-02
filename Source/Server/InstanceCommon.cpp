@@ -30,6 +30,6 @@ void Instance::run() {
 //	app_thread_pool = std::make_unique<ThreadPool>(app.app_threads);
 	prepare_next_session();
 	boost::system::error_code iosvc_error;
-	io_svc.run(iosvc_error);
+	io_service.run(iosvc_error);
 	LogE("%s[0x%016" PRIxPTR "]:\trun: io_service runner exited abnormally: %s\n", ModuleName, (uintptr_t)this, iosvc_error.message().c_str());
 }

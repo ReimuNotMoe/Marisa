@@ -22,12 +22,17 @@
 using namespace Marisa::Application;
 
 Route &Route::stream() {
-	streamed = true;
+	mode_streamed = true;
 	return *this;
 }
 
 Route &Route::async() {
-	asynced = true;
+	mode_async = true;
+	return *this;
+}
+
+Route &Route::no_yield() {
+	mode_no_yield = true;
 	return *this;
 }
 

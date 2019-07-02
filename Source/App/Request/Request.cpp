@@ -44,7 +44,7 @@ std::vector<uint8_t> Marisa::Application::Request::RequestContext::read(size_t _
 	auto ce = static_cast<ContextExposed *>(context);
 	auto sess = ce->session;
 
-	return sess->blocking_read(__buf_size);
+	return sess->read_blocking(__buf_size);
 }
 
 const std::unordered_map<std::string_view, std::string_view> &RequestContext::cookies() {

@@ -57,11 +57,12 @@ void InstanceSSL::prepare_next_session() {
 			LogD("%s[0x%016" PRIxPTR "]:\thandler_accept: New session accepted, ptr=%p\n", ModuleName, (uintptr_t)this, this_session.get());
 #endif
 			this_session->start();
-			prepare_next_session();
+
 		} else {
 			LogE("%s[0x%016" PRIxPTR "]:\thandler_accept: %s, deleting session %p\n", ModuleName, (uintptr_t)this, error.message().c_str(), this_session.get());
-			asm volatile("int3");
 		}
+
+		prepare_next_session();
 	});
 #ifdef DEBUG
 	LogD("%s[0x%016" PRIxPTR "]:\tprepare_next_session: Done, ptr=%p\n", ModuleName, (uintptr_t)this, next_session.get());

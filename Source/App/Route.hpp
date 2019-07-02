@@ -61,8 +61,9 @@ namespace Marisa {
 			Application::AppExposed &app;
 			std::unordered_map<int, RouteMethods> routemethods_mapping; // HTTP method => Route methods
 			RouteMethods routemethods_default;
-			bool streamed = false;
-			bool asynced = false;
+			bool mode_streamed = false;
+			bool mode_async = false;
+			bool mode_no_yield = false;
 
 		public:
 			explicit Route(Application::AppExposed &__ref_app) : app(__ref_app), routemethods_default(*this) {};
@@ -70,6 +71,8 @@ namespace Marisa {
 			Route &stream();
 
 			Route &async();
+
+			Route &no_yield();
 
 			RouteMethods &on(const std::string &__method);
 		};
@@ -79,8 +82,9 @@ namespace Marisa {
 			using Route::app;
 			using Route::routemethods_mapping;
 			using Route::routemethods_default;
-			using Route::streamed;
-			using Route::asynced;
+			using Route::mode_streamed;
+			using Route::mode_async;
+			using Route::mode_no_yield;
 
 		};
 	}

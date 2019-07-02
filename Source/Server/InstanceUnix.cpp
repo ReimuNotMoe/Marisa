@@ -31,7 +31,7 @@ using namespace Marisa::Log;
 static const char __ModuleName[] = "InstanceUnix";
 static const char __ModuleName_Session[] = "SessionUnix";
 
-InstanceUnix::InstanceUnix(Application::AppExposed &__ref_app) : Instance::Instance(__ref_app), acceptor(io_svc){
+InstanceUnix::InstanceUnix(Application::AppExposed &__ref_app) : Instance::Instance(__ref_app), acceptor(io_service){
 	ModuleName = __ModuleName;
 }
 
@@ -44,11 +44,12 @@ void InstanceUnix::prepare_next_session() {
 			LogD("%s[0x%016" PRIxPTR "]:\thandler_accept: New session accepted, ptr=%p\n", ModuleName, (uintptr_t)this, this_session.get());
 #endif
 			this_session->start();
-			prepare_next_session();
+
 		} else {
 			LogE("%s[0x%016" PRIxPTR "]:\thandler_accept: %s, deleting session %p\n", ModuleName, (uintptr_t)this, error.message().c_str(), this_session.get());
-			asm volatile("int3");
 		}
+
+		prepare_next_session();
 	});
 #ifdef DEBUG
 	LogD("%s[0x%016" PRIxPTR "]:\tprepare_next_session: Done, ptr=%p\n", ModuleName, (uintptr_t)this, next_session.get());
@@ -58,7 +59,7 @@ void InstanceUnix::prepare_next_session() {
 void InstanceUnix::listen(const std::string &__path) {
 	boost::asio::local::stream_protocol::endpoint ep;
 	ep.path(__path);
-	acceptor = boost::asio::local::stream_protocol::acceptor(io_svc, ep);
+	acceptor = boost::asio::local::stream_protocol::acceptor(io_service, ep);
 	LogI("%s[0x%016" PRIxPTR "]:\tWill listen on unix domain socket `%s'\n", ModuleName, (uintptr_t)this, __path.c_str());
 }
 
