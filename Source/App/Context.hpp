@@ -88,10 +88,14 @@ namespace Marisa {
 			void use_default_status_page(const HTTP::Status &__status);
 
 		public:
-			explicit Context(Application::AppExposed &__ref_app);
+			explicit Context(Application::AppExposed &__ref_app, boost::asio::io_service& __io_svc, boost::asio::io_service::strand& __io_strand);
 
 			std::unique_ptr<Request::RequestContext> request;
 			std::unique_ptr<Response::ResponseContext> response;
+
+			boost::asio::io_service& io_service;
+			boost::asio::io_service::strand& io_strand;
+			boost::asio::yield_context *yield_context = nullptr;
 
 			void next();
 		};
@@ -110,7 +114,7 @@ namespace Marisa {
 			using Context::container_thread;
 			using Context::process_request_data;
 
-			explicit ContextExposed(AppExposed &__ref_app) : Context(__ref_app) {};
+			explicit ContextExposed(AppExposed &__ref_app, boost::asio::io_service& __io_svc, boost::asio::io_service::strand& __io_strand) : Context(__ref_app, __io_svc, __io_strand) {};
 
 		};
 	}

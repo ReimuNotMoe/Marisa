@@ -28,7 +28,7 @@ using namespace Marisa::Utilities;
 using namespace Marisa::Application;
 using namespace Marisa::Log;
 
-SessionUnix::SessionUnix(Instance& __ref_inst, size_t io_buf_size) : Session::Session(__ref_inst), unix_socket(__ref_inst.io_svc) {
+SessionUnix::SessionUnix(Instance& __ref_inst, size_t io_buf_size) : Session::Session(__ref_inst), unix_socket(__ref_inst.io_service) {
 	buffer_read.resize(io_buf_size);
 }
 

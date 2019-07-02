@@ -30,8 +30,8 @@ using namespace Marisa::Application;
 using namespace Marisa::Log;
 
 Session::Session(Instance& __ref_inst) :
-	instance(__ref_inst), app(__ref_inst.app), io_service(__ref_inst.io_svc), io_strand(__ref_inst.io_svc), io_timeout_timer(__ref_inst.io_svc), io_timeout_duration((long)app.config.connection.timeout_seconds) {
-	app_ctx = std::make_unique<Application::ContextExposed>(app);
+	instance(__ref_inst), app(__ref_inst.app), io_service(__ref_inst.io_service), io_strand(__ref_inst.io_strand), io_timeout_timer(__ref_inst.io_service), io_timeout_duration((long)app.config.connection.timeout_seconds) {
+	app_ctx = std::make_unique<Application::ContextExposed>(app, io_service, io_strand);
 }
 
 Session::~Session() {
@@ -76,7 +76,7 @@ void Session::decide_io_action_in_write() {
 
 	if (!has_something_to_do && (app_ctx->state & Context::FLAG_KEEPALIVE)) {
 		auto psptr_session = app_ctx->session;
-		app_ctx = std::make_unique<Application::ContextExposed>(app);
+		app_ctx = std::make_unique<Application::ContextExposed>(app, io_service, io_strand);
 		app_ctx->session = psptr_session;
 		inline_async_read();
 	}

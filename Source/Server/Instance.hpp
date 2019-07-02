@@ -56,11 +56,12 @@ namespace Marisa {
 			const char *ModuleName = nullptr;
 			virtual void prepare_next_session() = 0;
 		public:
-			boost::asio::io_service io_svc;
+			boost::asio::io_service io_service;
+			boost::asio::io_service::strand io_strand;
 			Application::AppExposed &app;
 //			std::unique_ptr<ThreadPool> app_thread_pool;
 
-			explicit Instance(Application::AppExposed &__ref_app) : app(__ref_app) {};
+			explicit Instance(Application::AppExposed &__ref_app) : app(__ref_app), io_strand(io_service) {};
 
 			void run();
 			virtual void run_impl() = 0;
@@ -68,7 +69,7 @@ namespace Marisa {
 
 		class InstanceUnix : public Instance {
 		private:
-			boost::asio::local::stream_protocol::acceptor acceptor{io_svc};
+			boost::asio::local::stream_protocol::acceptor acceptor{io_service};
 
 			void prepare_next_session() override;
 		public:

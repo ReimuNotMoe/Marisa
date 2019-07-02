@@ -153,7 +153,7 @@ void Context::process_request_data(uint8_t *__buf, size_t __len) {
 	} else if (route->mode_async) {
 		boost::asio::spawn(session->io_strand, [this, s = std::shared_ptr<Session>(session->my_shared_from_this())](boost::asio::yield_context yield){
 			state |= STATE_THREAD_RUNNING;
-			response->yield_context = &yield;
+			yield_context = response->yield_context = &yield;
 			try {
 				next();
 			} catch (std::exception &e) {
@@ -263,7 +263,7 @@ bool Context::init_handler_data() {
 	return true;
 }
 
-Context::Context(AppExposed &__ref_app) : app(__ref_app) {
+Context::Context(AppExposed &__ref_app, boost::asio::io_service& __io_svc, boost::asio::io_service::strand& __io_strand) : app(__ref_app), io_service(__io_svc), io_strand(__io_strand) {
 //	this.http_parser = std::unique_ptr<HTTP1::Parser, std::function<void(HTTP1::Parser*)>>(new (memory) HTTP1::Parser(), [](HTTP1::Parser *p){
 ////		p->~Parser();
 //	});

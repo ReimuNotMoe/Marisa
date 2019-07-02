@@ -31,12 +31,12 @@ using namespace Marisa::Log;
 static const char __ModuleName[] = "InstanceTCP";
 static const char __ModuleName_Session[] = "SessionTCP";
 
-InstanceTCP::InstanceTCP(Application::AppExposed &__ref_app) : Instance::Instance(__ref_app), acceptor(io_svc) {
+InstanceTCP::InstanceTCP(Application::AppExposed &__ref_app) : Instance::Instance(__ref_app), acceptor(io_service) {
 	ModuleName = __ModuleName;
 }
 
 void InstanceTCP::listen(const boost::asio::ip::tcp::endpoint& __ep) { // Dual-stack
-	acceptor = boost::asio::ip::tcp::acceptor(io_svc);
+	acceptor = boost::asio::ip::tcp::acceptor(io_service);
 	acceptor.open(__ep.protocol());
 	boost::system::error_code ec;
 	acceptor.set_option(boost::asio::ip::tcp::acceptor::reuse_address(true), ec);
@@ -54,33 +54,26 @@ void InstanceTCP::prepare_next_session() {
 	auto next_session = std::make_shared<SessionTCP>(*this);
 	next_session->ModuleName = __ModuleName_Session;
 
-	acceptor.async_accept(next_session->socket(), [&, this_session = next_session](const boost::system::error_code &error){
+	acceptor.async_accept(next_session->socket(), io_strand.wrap([&, this_session = next_session](const boost::system::error_code &error){
 		if (!error) {
 #ifdef DEBUG
 			LogD("%s[0x%016" PRIxPTR "]:\thandler_accept: New session accepted, ptr=%p\n", ModuleName, (uintptr_t)this, this_session.get());
 #endif
 			this_session->start();
-			prepare_next_session();
+
 		} else {
 			LogE("%s[0x%016" PRIxPTR "]:\thandler_accept: %s, deleting session %p\n", ModuleName, (uintptr_t)this, error.message().c_str(), this_session.get());
-			asm volatile("int3");
 		}
-	});
+
+		prepare_next_session();
+	}));
 #ifdef DEBUG
 	LogD("%s[0x%016" PRIxPTR "]:\tprepare_next_session: Done, ptr=%p\n", ModuleName, (uintptr_t)this, next_session.get());
 #endif
 }
 
-static const int optval = 1;
-
-
-
 void InstanceTCP::run_impl() {
-	boost::system::error_code ec;
-//	acceptor.set_option(boost::asio::ip::tcp::acceptor::reuse_address(true), ec);
-//	acceptor.set_option(so_reuseport(true), ec);
-//	int fd = acceptor.native_handle();
-//	assert(setsockopt(fd, SOL_SOCKET, SO_REUSEPORT, &optval, sizeof(optval)) != -1);
+
 }
 
 

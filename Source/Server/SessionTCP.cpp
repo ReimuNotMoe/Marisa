@@ -27,7 +27,7 @@ using namespace Marisa::Utilities;
 using namespace Marisa::Application;
 using namespace Marisa::Log;
 
-SessionTCP::SessionTCP(Instance& __ref_inst, size_t io_buf_size) : Session::Session(__ref_inst), tcp_socket(__ref_inst.io_svc) {
+SessionTCP::SessionTCP(Instance& __ref_inst, size_t io_buf_size) : Session::Session(__ref_inst), tcp_socket(__ref_inst.io_service) {
 	buffer_read.resize(io_buf_size);
 }
 
@@ -147,11 +147,11 @@ void SessionTCP::write_promised_impl() {
 }
 
 void SessionTCP::close_socket_impl(std::shared_ptr<Session>& keeper) {
-	try {
-		socket().close();
-	} catch (...) {
+	boost::system::error_code ec;
+	socket().shutdown(boost::asio::ip::tcp::socket::shutdown_both, ec);
+	if (ec)
+		LogE("%s[0x%016" PRIxPTR "]:\tclose_socket_impl: %s\n", ModuleName, (uintptr_t)this, ec.message().c_str());
 
-	}
 }
 
 std::shared_ptr<Session> SessionTCP::my_shared_from_this() {
