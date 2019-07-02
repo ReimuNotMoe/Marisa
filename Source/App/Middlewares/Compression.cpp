@@ -85,16 +85,20 @@ void __compression_response_overrider::compress_once(const void *__data, size_t 
 		assert(res == Z_OK);
 
 		if (zlib_strm.avail_out == 0) {
-			buf.resize(buf.size()+buf_size);
+			auto oldsize = buf.size();
+			buf.resize(oldsize+buf_size);
 			zlib_strm.avail_out = buf_size;
+			zlib_strm.next_out = (unsigned char *)(buf.data() + oldsize);
 		}
 	}
 
 	int deflate_res = Z_OK;
 	while (deflate_res == Z_OK) {
 		if (zlib_strm.avail_out == 0) {
-			buf.resize(buf.size()+buf_size);
+			auto oldsize = buf.size();
+			buf.resize(oldsize+buf_size);
 			zlib_strm.avail_out = buf_size;
+			zlib_strm.next_out = (unsigned char *)(buf.data() + oldsize);
 		}
 		deflate_res = deflate(&zlib_strm, Z_FINISH);
 	}
