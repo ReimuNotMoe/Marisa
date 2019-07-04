@@ -5,7 +5,7 @@ stages:
   - test
 #  - package
 
-build:
+build_coverage:
   stage: build_coverage
   before_script:
     - apt-get update && apt-get -y install git build-essential cmake libboost-all-dev libssl-dev zlib1g-dev
