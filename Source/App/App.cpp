@@ -121,9 +121,28 @@ void App::init_seq_routemap() {
 }
 
 void App::run(size_t __threads_per_io_service) {
-	io_threads = __threads_per_io_service;
+	nr_io_threads = __threads_per_io_service;
 
-	run_io(io_threads);
+	run_io(nr_io_threads);
+}
+
+void App::stop() {
+	for (auto &it : tcp_servers) {
+		for (int i=0; i<nr_io_threads; i++)
+			it->stop();
+	}
+
+	for (auto &it : ssl_servers) {
+		for (int i=0; i<nr_io_threads; i++)
+			it->stop();
+	}
+
+
+	for (auto &it : unix_servers) {
+		for (int i=0; i<nr_io_threads; i++)
+			it->stop();
+	}
+
 }
 
 void App::run_io(size_t __threads) {
@@ -167,4 +186,6 @@ void App::run_io(size_t __threads) {
 	for (auto &it : runners) {
 		it.join();
 	}
+
+	runners.clear();
 }

@@ -64,6 +64,8 @@ namespace Marisa {
 			explicit Instance(Application::AppExposed &__ref_app) : app(__ref_app), io_strand(io_service) {};
 
 			void run();
+			void stop();
+
 			virtual void run_impl() = 0;
 		};
 

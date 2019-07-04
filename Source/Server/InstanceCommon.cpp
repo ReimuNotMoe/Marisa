@@ -31,5 +31,10 @@ void Instance::run() {
 	prepare_next_session();
 	boost::system::error_code iosvc_error;
 	io_service.run(iosvc_error);
-	LogE("%s[0x%016" PRIxPTR "]:\trun: io_service runner exited abnormally: %s\n", ModuleName, (uintptr_t)this, iosvc_error.message().c_str());
+	LogI("%s[0x%016" PRIxPTR "]:\trun: io_service runner exited: %s\n", ModuleName, (uintptr_t)this, iosvc_error.message().c_str());
+}
+
+void Instance::stop() {
+	io_service.stop();
+	LogI("%s[0x%016" PRIxPTR "]:\tStopping server\n", ModuleName, (uintptr_t)this);
 }

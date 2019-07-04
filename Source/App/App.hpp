@@ -50,7 +50,7 @@ namespace Marisa {
 			void init_seq_routemap();
 
 			// unsigned int app_threads = 1; // No suitable thread pool found so far
-			size_t io_threads = 1;
+			size_t nr_io_threads = 1;
 
 			void run_io(size_t __threads);
 		public:
@@ -79,6 +79,7 @@ namespace Marisa {
 			Route &route(std::regex __route_regex);
 
 			void run(size_t __threads_per_io_service = 1);
+			void stop();
 
 			const std::vector<std::pair<std::regex, std::shared_ptr<Route>>>& get_routes() {
 				return route_mapping;
