@@ -1,5 +1,5 @@
 # Marisa
-![pipeline status](https://gitlab.com/ReimuNotMoe/Marisa-Github/badges/master/pipeline.svg)
+[![pipeline status](https://gitlab.com/ReimuNotMoe/Marisa-Github/badges/master/pipeline.svg)](https://gitlab.com/ReimuNotMoe/Marisa-Github/pipelines)
 
 A lightening fast, express-like C++ web server framework
 
@@ -21,7 +21,7 @@ Also remember to have a look at the examples in [Tests](https://github.com/Reimu
 Especially [hello_lambda.cpp](https://github.com/ReimuNotMoe/Marisa/blob/master/Source/Tests/hello_lambda.cpp).
 
 ## Benchmarks
-See [benchmarks](Benchmark.md).
+See [benchmarks](Benchmark.md). (Outdated)
 
 ## Build
 ### Dependencies
