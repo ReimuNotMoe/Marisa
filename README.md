@@ -1,5 +1,8 @@
 # Marisa
-![pipeline status](https://gitlab.com/ReimuNotMoe/Marisa-Github/badges/master/pipeline.svg)
+[![pipeline status](https://gitlab.com/ReimuNotMoe/Marisa-Github/badges/master/pipeline.svg)](https://gitlab.com/ReimuNotMoe/Marisa-Github/pipelines)
+[![coverage report](https://gitlab.com/ReimuNotMoe/Marisa-Github/badges/master/coverage.svg)](https://gitlab.com/ReimuNotMoe/Marisa-Github/pipelines)
+
+
 
 A lightening fast, express-like C++ web server framework
 
@@ -17,8 +20,8 @@ A lightening fast, express-like C++ web server framework
 ## Usage
 See the [documentation](https://marisa.readthedocs.io). (WIP)
 
-Also remember to have a look at the examples in [Tests](https://github.com/ReimuNotMoe/Marisa/blob/master/Source/Tests/) directory.
-Especially [hello_lambda.cpp](https://github.com/ReimuNotMoe/Marisa/blob/master/Source/Tests/hello_lambda.cpp).
+Also remember to have a look at the examples in [Examples](https://github.com/ReimuNotMoe/Marisa/blob/master/Source/Examples/) directory.
+Especially [hello_lambda.cpp](https://github.com/ReimuNotMoe/Marisa/blob/master/Source/Examples/hello_lambda.cpp).
 
 ## Benchmarks
 See [benchmarks](Benchmark.md).

@@ -1,5 +1,6 @@
 cmake_minimum_required(VERSION 3.4)
 project(marisa)
+ENABLE_TESTING()
 
 set(CMAKE_CXX_STANDARD 17)
 
@@ -81,35 +82,40 @@ target_link_libraries(marisa pthread boost_system boost_thread boost_coroutine z
 target_link_libraries(marisa_static pthread boost_system boost_thread boost_coroutine z ssl crypto local_base64)
 
 
-add_executable(test_Hello Tests/hello.cpp)
-target_link_libraries(test_Hello marisa)
+add_executable(test_Coverage Tests/coverage.cpp)
+target_link_libraries(test_Coverage marisa gcov)
 
-add_executable(test_HelloLambda Tests/hello_lambda.cpp)
-target_link_libraries(test_HelloLambda marisa)
+add_test(NAME Coverage COMMAND test_Coverage)
 
-add_executable(test_HelloAsync Tests/hello_async.cpp)
-target_link_libraries(test_HelloAsync marisa)
+add_executable(example_Hello Examples/hello.cpp)
+target_link_libraries(example_Hello marisa)
 
-add_executable(test_HelloSimple Tests/hello_simple.cpp)
-target_link_libraries(test_HelloSimple marisa)
+add_executable(example_HelloLambda Examples/hello_lambda.cpp)
+target_link_libraries(example_HelloLambda marisa)
 
-add_executable(test_HelloSSL Tests/hello_ssl.cpp)
-target_link_libraries(test_HelloSSL marisa)
+add_executable(example_HelloAsync Examples/hello_async.cpp)
+target_link_libraries(example_HelloAsync marisa)
 
-add_executable(test_HelloUnixSocket Tests/hello_unix_socket.cpp)
-target_link_libraries(test_HelloUnixSocket marisa)
+add_executable(example_HelloSimple Examples/hello_simple.cpp)
+target_link_libraries(example_HelloSimple marisa)
 
-add_executable(test_UsageDemo Tests/usage_demo.cpp)
-target_link_libraries(test_UsageDemo marisa)
+add_executable(example_HelloSSL Examples/hello_ssl.cpp)
+target_link_libraries(example_HelloSSL marisa)
 
-add_executable(test_SendSingleFile Tests/send_single_file.cpp)
-target_link_libraries(test_SendSingleFile marisa)
+add_executable(example_HelloUnixSocket Examples/hello_unix_socket.cpp)
+target_link_libraries(example_HelloUnixSocket marisa)
 
-add_executable(test_StaticFiles Tests/static_files.cpp)
-target_link_libraries(test_StaticFiles marisa)
+add_executable(example_UsageDemo Examples/usage_demo.cpp)
+target_link_libraries(example_UsageDemo marisa)
 
-add_executable(test_StreamedPicUpload Tests/streamed_upload_pic.cpp)
-target_link_libraries(test_StreamedPicUpload marisa)
+add_executable(example_SendSingleFile Examples/send_single_file.cpp)
+target_link_libraries(example_SendSingleFile marisa)
+
+add_executable(example_StaticFiles Examples/static_files.cpp)
+target_link_libraries(example_StaticFiles marisa)
+
+add_executable(example_StreamedPicUpload Examples/streamed_upload_pic.cpp)
+target_link_libraries(example_StreamedPicUpload marisa)
 
 install(TARGETS marisa
         LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR})

@@ -1,12 +1,12 @@
 image: ubuntu:18.04
 
 stages:
-  - build
-#  - test
+  - build_coverage
+  - test
 #  - package
 
 build:
-  stage: build
+  stage: build_coverage
   before_script:
     - apt-get update && apt-get -y install git build-essential cmake libboost-all-dev libssl-dev zlib1g-dev
     - git submodule sync --recursive
@@ -14,4 +14,18 @@ build:
   artifacts:
     untracked: true
   script:
-    - cd Source && mkdir build && cd build && cmake .. && make
+    - cd Source && mkdir build && cd build && cmake -DCMAKE_BUILD_TYPE=Debug -DCMAKE_CXX_FLAGS='-O0 -g -pg -fprofile-arcs -ftest-coverage' -DCMAKE_EXE_LINKER_FLAGS=-pg -DCMAKE_SHARED_LINKER_FLAGS=-pg .. && make
+
+test:
+  stage: test
+  before_script:
+    - apt-get update && apt-get -y install lcov
+  dependencies:
+    - build_coverage
+  artifacts:
+    untracked: true
+  script:
+    - cd Source/build
+    - sh -c './test_Coverage'
+    - lcov -d . -c --output-file app.info
+    - lcov -l app.info
