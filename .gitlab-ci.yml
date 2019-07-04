@@ -19,7 +19,7 @@ build_coverage:
 test:
   stage: test
   before_script:
-    - apt-get update && apt-get -y install lcov
+    - apt-get update && apt-get -y install lcov curl libboost-all-dev libssl-dev zlib1g-dev
   dependencies:
     - build_coverage
   artifacts:
