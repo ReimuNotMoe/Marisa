@@ -63,6 +63,10 @@ namespace Marisa {
 				struct connection {
 					uint16_t timeout_seconds = 60;
 				} connection;
+
+				struct app {
+					bool catch_unhandled_exception = true;
+				} app;
 			} config;
 
 			App() = default;

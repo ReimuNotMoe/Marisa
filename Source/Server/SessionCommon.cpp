@@ -103,17 +103,22 @@ void Session::setup_timeout_timer() {
 std::future<std::future<std::pair<boost::system::error_code, std::shared_ptr<std::vector<uint8_t>>>>> Session::read_promised(
 	size_t __buf_size) {
 
-	auto s = my_shared_from_this();
-	return post_future_to_strand(io_strand, [&](){
-		return read_promised_impl(s, __buf_size);
-	});
+//	auto s = my_shared_from_this();
+//	return post_future_to_strand(io_strand, [&, s, __buf_size](){
+//		return read_promised_impl(s, __buf_size);
+//	});
 
-//	return post_future_to_strand(io_strand, boost::bind(&Session::async_read_impl, this, my_shared_from_this(), __buf_size));
+	return post_future_to_strand(io_strand, boost::bind(&Session::read_promised_impl, this, my_shared_from_this(), __buf_size));
 }
 
 void Session::inline_async_read() {
 	inline_async_read_impl();
 }
+
+std::vector<uint8_t> Session::read_async(boost::asio::yield_context& __yield_ctx, size_t __buf_size) {
+	return read_async_impl(__yield_ctx, __buf_size);
+}
+
 
 std::vector<uint8_t> Session::read_blocking(size_t __buf_size) {
 #ifdef DEBUG
@@ -182,6 +187,7 @@ void Session::error_action(const boost::system::error_code &__err_code) {
 void Session::close_socket() {
 	io_strand.post(boost::bind(&Session::close_socket_impl, this, my_shared_from_this()));
 }
+
 
 
 

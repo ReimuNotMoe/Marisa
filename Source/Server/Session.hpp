@@ -80,6 +80,7 @@ namespace Marisa {
 
 			virtual void start() = 0;
 
+			virtual std::vector<uint8_t> read_async(boost::asio::yield_context& __yield_ctx, size_t __buf_size = 4096);
 			virtual std::future<std::future<std::pair<boost::system::error_code, std::shared_ptr<std::vector<uint8_t>>>>> read_promised(
 				size_t __buf_size = 4096);
 			virtual void inline_async_read();
@@ -89,6 +90,7 @@ namespace Marisa {
 			virtual void inline_async_read_impl() = 0;
 			virtual std::future<std::pair<boost::system::error_code, std::shared_ptr<std::vector<uint8_t>>>> read_promised_impl(
 				std::shared_ptr<Session> &__session_keeper, size_t __buf_size) = 0;
+			virtual std::vector<uint8_t> read_async_impl(boost::asio::yield_context& __yield_ctx, size_t __buf_size = 4096) = 0;
 
 
 			virtual std::future<boost::system::error_code> arrange_async_write(std::shared_ptr<Session>& keeper, std::shared_ptr<Buffer>& __data);
@@ -135,6 +137,8 @@ namespace Marisa {
 
 			void inline_async_read_impl() override;
 
+			std::vector<uint8_t> read_async_impl(boost::asio::yield_context& __yield_ctx, size_t __buf_size = 4096) override;
+
 			void write_promised_impl() override;
 
 			size_t write_async_impl(Buffer __data, boost::asio::yield_context& __yield_ctx) override;
@@ -166,6 +170,8 @@ namespace Marisa {
 				std::shared_ptr<Session> &__session_keeper, size_t __buf_size) override;
 
 			void inline_async_read_impl() override;
+
+			std::vector<uint8_t> read_async_impl(boost::asio::yield_context& __yield_ctx, size_t __buf_size = 4096) override;
 
 			void write_promised_impl() override;
 
@@ -203,6 +209,8 @@ namespace Marisa {
 				std::shared_ptr<Session> &__session_keeper, size_t __buf_size) override;
 
 			void inline_async_read_impl() override;
+
+			std::vector<uint8_t> read_async_impl(boost::asio::yield_context& __yield_ctx, size_t __buf_size = 4096) override;
 
 			void write_promised_impl() override;
 

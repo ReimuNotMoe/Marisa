@@ -20,7 +20,6 @@
 #define MARISA_APP_RESPONSE_HPP
 
 #include "../../CommonIncludes.hpp"
-#include "Body.hpp"
 #include "../../Types/Date.hpp"
 #include "../../Protocol/HTTP/Status.hpp"
 #include "../../Log/Log.hpp"

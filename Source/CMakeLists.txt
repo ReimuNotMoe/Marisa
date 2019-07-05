@@ -22,7 +22,6 @@ set(SOURCE_FILES
 
         App/Request/Request.cpp App/Request/Request.hpp
         App/Response/Response.hpp App/Response/Response.cpp
-        App/Response/Body.hpp App/Response/Body.cpp
         App/Middleware.cpp App/Middleware.hpp
 
         App/Middlewares/Middlewares.hpp App/Middlewares/CommonIncludes.hpp

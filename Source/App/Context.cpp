@@ -143,23 +143,38 @@ void Context::process_request_data(uint8_t *__buf, size_t __len) {
 	// Run App
 	// Route declared async, run it here
 	if (route->mode_no_yield) {
-		try {
+		if (app.config.app.catch_unhandled_exception) {
+			try {
+				next();
+			} catch (std::exception &e) {
+				auto hpos = handlers->pos_cur_handler;
+				LogE("%s[0x%016" PRIxPTR "]:\tuncaught exception in middleware #%zu at %p: %s\n",
+				     ModuleName, (uintptr_t) this, hpos, handlers->middleware_list[hpos].get(),
+				     e.what());
+			}
+		} else {
 			next();
-		} catch (std::exception &e) {
-			auto hpos = handlers->pos_cur_handler;
-			LogE("%s[0x%016" PRIxPTR "]:\tuncaught exception in middleware #%zu at %p: %s\n", ModuleName, (uintptr_t)this, hpos, handlers->middleware_list[hpos].get(), e.what());
 		}
+
 		response.reset();
 	} else if (route->mode_async) {
 		boost::asio::spawn(session->io_strand, [this, s = std::shared_ptr<Session>(session->my_shared_from_this())](boost::asio::yield_context yield){
 			state |= STATE_THREAD_RUNNING;
 			yield_context = response->yield_context = &yield;
-			try {
+
+			if (app.config.app.catch_unhandled_exception) {
+				try {
+					next();
+				} catch (std::exception &e) {
+					auto hpos = handlers->pos_cur_handler;
+					LogE("%s[0x%016" PRIxPTR "]:\tuncaught exception in middleware #%zu at %p: %s\n",
+					     ModuleName, (uintptr_t) this, hpos, handlers->middleware_list[hpos].get(),
+					     e.what());
+				}
+			} else {
 				next();
-			} catch (std::exception &e) {
-				auto hpos = handlers->pos_cur_handler;
-				LogE("%s[0x%016" PRIxPTR "]:\tuncaught exception in middleware #%zu at %p: %s\n", ModuleName, (uintptr_t)this, hpos, handlers->middleware_list[hpos].get(), e.what());
 			}
+
 			response.reset();
 			state &= ~STATE_THREAD_RUNNING;
 		});
@@ -195,11 +210,16 @@ void Context::container_thread(Context *__ctx, void *__session_sptr) {
 	LogD("%s[0x%016" PRIxPTR "]:\tcontainer_thread: started\n", ModuleName, (uintptr_t)__ctx);
 #endif
 
-	try {
+	if (__ctx->app.config.app.catch_unhandled_exception) {
+		try {
+			__ctx->next();
+		} catch (std::exception &e) {
+			auto hpos = __ctx->handlers->pos_cur_handler;
+			LogE("%s[0x%016" PRIxPTR "]:\tuncaught exception in middleware #%zu at %p: %s\n", ModuleName,
+			     (uintptr_t) __ctx, hpos, __ctx->handlers->middleware_list[hpos].get(), e.what());
+		}
+	} else {
 		__ctx->next();
-	} catch (std::exception &e) {
-		auto hpos = __ctx->handlers->pos_cur_handler;
-		LogE("%s[0x%016" PRIxPTR "]:\tuncaught exception in middleware #%zu at %p: %s\n", ModuleName, (uintptr_t)__ctx, hpos, __ctx->handlers->middleware_list[hpos].get(), e.what());
 	}
 
 	__ctx->response.reset();

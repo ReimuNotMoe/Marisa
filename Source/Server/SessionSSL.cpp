@@ -133,6 +133,13 @@ void SessionSSL::inline_async_read_impl() {
 #endif
 }
 
+std::vector<uint8_t> SessionSSL::read_async_impl(boost::asio::yield_context &__yield_ctx, size_t __buf_size) {
+	std::vector<uint8_t> ret(__buf_size);
+	auto rc = ssl_socket.async_read_some(boost::asio::buffer(ret.data(), ret.size()), __yield_ctx);
+	ret.resize(rc);
+	return ret;
+}
+
 size_t SessionSSL::write_async_impl(Buffer __data, boost::asio::yield_context &__yield_ctx) {
 	return boost::asio::async_write(ssl_socket, __data.get(), __yield_ctx);
 }
@@ -184,6 +191,8 @@ void SessionSSL::close_socket_impl(std::shared_ptr<Session>& keeper) {
 std::shared_ptr<Session> SessionSSL::my_shared_from_this() {
 	return std::static_pointer_cast<Session>(shared_from_this());
 }
+
+
 
 
 

@@ -106,6 +106,13 @@ void SessionTCP::inline_async_read_impl() {
 #endif
 }
 
+std::vector<uint8_t> SessionTCP::read_async_impl(boost::asio::yield_context &__yield_ctx, size_t __buf_size) {
+	std::vector<uint8_t> ret(__buf_size);
+	auto rc = tcp_socket.async_read_some(boost::asio::buffer(ret.data(), ret.size()), __yield_ctx);
+	ret.resize(rc);
+	return ret;
+}
+
 size_t SessionTCP::write_async_impl(Buffer __data, boost::asio::yield_context &__yield_ctx) {
 	return boost::asio::async_write(tcp_socket, __data.get(), __yield_ctx);
 }
