@@ -20,7 +20,8 @@
 
 using namespace Marisa::Application;
 
-void Middleware::reinit_pointers() noexcept {
+void Middleware::__load_context(ContextExposed *__context) noexcept {
+	context = __context;
 	request = context->request.get();
 	response = context->response.get();
 }
@@ -44,3 +45,29 @@ Middleware::~Middleware() {
 	LogD("%s[0x%016" PRIxPTR "]:\tdestructor called\n", "Middleware", (uintptr_t)this);
 #endif
 }
+
+void Middleware_RawIO::__load_context(ContextExposed *__context) noexcept {
+	context = __context;
+	session = context->session;
+	yield_context = context->yield_context;
+}
+
+
+void Middleware_RawIO::handler() {
+	LogE("%s[0x%016" PRIxPTR "]:\toverrider of handler() hasn't been correctly defined\n", "Middleware_RawIO", (uintptr_t)this);
+	abort();
+}
+
+std::unique_ptr<Middleware_RawIO> Middleware_RawIO::New() const {
+	LogE("%s[0x%016" PRIxPTR "]:\toverrider of New() hasn't been correctly defined\n", "Middleware_RawIO", (uintptr_t)this);
+	abort();
+}
+
+Middleware_RawIO::~Middleware_RawIO() {
+#ifdef DEBUG
+	LogD("%s[0x%016" PRIxPTR "]:\tdestructor called\n", "Middleware_RawIO", (uintptr_t)this);
+#endif
+}
+
+
+

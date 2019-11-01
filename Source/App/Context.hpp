@@ -84,6 +84,8 @@ namespace Marisa {
 
 			bool init_handler_data();
 			bool determine_hp_state();
+			void run_handler();
+			void run_raw_handler();
 			void process_request_data(uint8_t *__buf, size_t __len);
 			void use_default_status_page(const HTTP::Status &__status);
 
@@ -113,6 +115,7 @@ namespace Marisa {
 
 			using Context::container_thread;
 			using Context::process_request_data;
+			using Context::run_raw_handler;
 
 			explicit ContextExposed(AppExposed &__ref_app, boost::asio::io_service& __io_svc, boost::asio::io_service::strand& __io_strand) : Context(__ref_app, __io_svc, __io_strand) {};
 

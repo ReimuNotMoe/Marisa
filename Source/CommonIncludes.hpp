@@ -19,6 +19,8 @@
 #ifndef MARISA_COMMONINCLUDES_HPP
 #define MARISA_COMMONINCLUDES_HPP
 
+#define DEBUG
+
 #include <string>
 #include <thread>
 #include <memory>

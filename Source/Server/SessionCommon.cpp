@@ -40,6 +40,33 @@ Session::~Session() {
 #endif
 }
 
+void Session::inline_async_read() {
+	inline_async_read_impl();
+}
+
+void Session::inline_async_write(Buffer __data) {
+	auto sptr = std::make_shared<Buffer>(std::move(__data));
+	io_strand.post(boost::bind(&Session::arrange_inline_async_write, this, my_shared_from_this(), sptr));
+}
+
+void Session::arrange_inline_async_write(std::shared_ptr<Session> &keeper, std::shared_ptr<Buffer>& __data) {
+	auto &ref = queue_write.emplace_back();
+	ref.first = std::move(*__data);
+
+	if (queue_write.size() <= 1) {
+		inline_async_write_impl();
+	}
+
+}
+
+void Session::reload_context() {
+	if (app_ctx->state & Context::FLAG_KEEPALIVE) {
+		auto psptr_session = app_ctx->session;
+		app_ctx = std::make_unique<Application::ContextExposed>(app, io_service, io_strand);
+		app_ctx->session = psptr_session;
+		inline_async_read();
+	}
+}
 
 void Session::decide_io_action_in_read() {
 #ifdef DEBUG
@@ -83,7 +110,11 @@ void Session::decide_io_action_in_write() {
 }
 
 void Session::setup_timeout_timer() {
+#if BOOST_VERSION < 106600
 	io_timeout_timer.expires_from_now(io_timeout_duration);
+#else
+	io_timeout_timer.expires_after(io_timeout_duration);
+#endif
 	io_timeout_timer.async_wait([this](const boost::system::error_code& error){
 		if (error == boost::asio::error::operation_aborted) {
 			// DO NOT TOUCH MEMORY HERE
@@ -99,24 +130,44 @@ void Session::setup_timeout_timer() {
 		}
 	});
 }
+void Session::setup_timeout_timer_coro() {
+	boost::asio::spawn(io_strand, [this](boost::asio::yield_context _yield_ctx) {
+		boost::system::error_code ec;
+#if BOOST_VERSION < 106600
+		io_timeout_timer.expires_from_now(io_timeout_duration);
+#else
+		io_timeout_timer.expires_after(io_timeout_duration);
+#endif
+		io_timeout_timer.async_wait(_yield_ctx[ec]);
 
-std::future<std::future<std::pair<boost::system::error_code, std::shared_ptr<std::vector<uint8_t>>>>> Session::read_promised(
-	size_t __buf_size) {
-
-//	auto s = my_shared_from_this();
-//	return post_future_to_strand(io_strand, [&, s, __buf_size](){
-//		return read_promised_impl(s, __buf_size);
-//	});
-
-	return post_future_to_strand(io_strand, boost::bind(&Session::read_promised_impl, this, my_shared_from_this(), __buf_size));
+		if (ec == boost::asio::error::operation_aborted) {
+			// DO NOT TOUCH MEMORY HERE
+#ifdef DEBUG
+			LogD("%s[0x%016" PRIxPTR "]:\tio_timer cancelled\n", "Session???", (uintptr_t)this);
+#endif
+		} else {
+#ifdef DEBUG
+			LogD("%s[0x%016" PRIxPTR "]:\tsocket timeout\n", ModuleName, (uintptr_t)this);
+#endif
+			app_ctx->state = 0;
+			close_socket();
+		}
+	});
 }
 
-void Session::inline_async_read() {
-	inline_async_read_impl();
+std::future<std::future<std::pair<boost::system::error_code, std::shared_ptr<std::vector<uint8_t>>>>> Session::read_async(
+	size_t __buf_size) {
+
+	return post_future_to_strand(io_strand, boost::bind(&Session::read_async_promised_impl, this, my_shared_from_this(), __buf_size));
 }
 
 std::vector<uint8_t> Session::read_async(boost::asio::yield_context& __yield_ctx, size_t __buf_size) {
-	return read_async_impl(__yield_ctx, __buf_size);
+	return read_async_coro_impl(__yield_ctx, __buf_size);
+}
+
+void Session::read_async(std::function<void(const boost::system::error_code &, std::vector<uint8_t>)> __cb,
+			 size_t __buf_size) {
+	read_async_with_callback_impl(std::move(__cb), __buf_size);
 }
 
 
@@ -124,7 +175,7 @@ std::vector<uint8_t> Session::read_blocking(size_t __buf_size) {
 #ifdef DEBUG
 	LogD("%s[0x%016" PRIxPTR "]:\tblocking_read started\n", ModuleName, (uintptr_t)this);
 #endif
-	auto f_queue = read_promised(__buf_size);
+	auto f_queue = read_async(__buf_size);
 	auto f_async_write = f_queue.get();
 	auto result = f_async_write.get();
 
@@ -145,19 +196,23 @@ std::future<boost::system::error_code> Session::arrange_async_write(std::shared_
 	auto f = ref.second.get_future();
 
 	if (queue_write.size() <= 1) {
-		write_promised_impl();
+		write_async_promised_impl();
 	}
 
 	return f;
 }
 
-std::future<std::future<boost::system::error_code>> Session::write_promised(Buffer __data) {
+std::future<std::future<boost::system::error_code>> Session::write_async(Buffer __data) {
 	auto sptr = std::make_shared<Buffer>(std::move(__data));
 	return post_future_to_strand(io_strand, boost::bind(&Session::arrange_async_write, this, my_shared_from_this(), sptr));
 }
 
 size_t Session::write_async(Buffer __data, boost::asio::yield_context &__yield_ctx) {
-	return write_async_impl(std::move(__data), __yield_ctx);
+	return write_async_coro_impl(std::move(__data), __yield_ctx);
+}
+
+void Session::write_async(Buffer __data, std::function<void(const boost::system::error_code &, size_t)> __cb) {
+	write_async_with_callback_impl(std::move(__data), std::move(__cb));
 }
 
 void Session::write_blocking(Buffer __data) {
@@ -165,7 +220,7 @@ void Session::write_blocking(Buffer __data) {
 	LogD("%s[0x%016" PRIxPTR "]:\tblocking_write started\n", ModuleName, (uintptr_t)this);
 #endif
 
-	auto f_queue = write_promised(std::move(__data));
+	auto f_queue = write_async(std::move(__data));
 	auto f_async_write = f_queue.get();
 	auto errr = f_async_write.get();
 
@@ -185,8 +240,17 @@ void Session::error_action(const boost::system::error_code &__err_code) {
 }
 
 void Session::close_socket() {
+	LogD("%s[0x%016" PRIxPTR "]:\trequesting socket to close\n", ModuleName, (uintptr_t)this);
 	io_strand.post(boost::bind(&Session::close_socket_impl, this, my_shared_from_this()));
 }
+
+
+
+
+
+
+
+
 
 
 

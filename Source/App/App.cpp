@@ -189,3 +189,10 @@ void App::run_io(size_t __threads) {
 
 	runners.clear();
 }
+
+void App::use_raw(const Middleware_RawIO &__ref_mw, bool __async) {
+	raw_mw = __ref_mw.New();
+	if (__async) {
+		flags |= 0x1000;
+	}
+}

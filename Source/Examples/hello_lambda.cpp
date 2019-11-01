@@ -24,7 +24,7 @@ using namespace Middlewares;
 int main() {
 	App myapp;
 
-	myapp.route("/").on("GET").use(Lambda([](auto *req, auto *rsp, auto *ctx){
+	myapp.route("/").async().on("GET").use(Lambda([](auto *req, auto *rsp, auto *ctx){
 		rsp->send("<html><head>"
 		"<meta http-equiv=\"content-type\" content=\"text/html; charset=UTF-8\">"
 		"<title>Hello Marisa!</title>"

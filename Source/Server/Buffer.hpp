@@ -43,6 +43,12 @@ namespace Marisa {
 				assign(__sv);
 			}
 
+			Buffer(const void *__s, size_t __len) {
+				if (!__len)
+					__len = strlen((const char *)__s);
+				assign(std::string_view((const char *)__s, __len));
+			}
+
 			Buffer(const Buffer& o) {
 				assign(o);
 			}
