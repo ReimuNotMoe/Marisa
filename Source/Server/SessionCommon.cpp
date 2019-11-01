@@ -110,7 +110,11 @@ void Session::decide_io_action_in_write() {
 }
 
 void Session::setup_timeout_timer() {
+#if BOOST_VERSION < 106600
+	io_timeout_timer.expires_from_now(io_timeout_duration);
+#else
 	io_timeout_timer.expires_after(io_timeout_duration);
+#endif
 	io_timeout_timer.async_wait([this](const boost::system::error_code& error){
 		if (error == boost::asio::error::operation_aborted) {
 			// DO NOT TOUCH MEMORY HERE
@@ -128,22 +132,26 @@ void Session::setup_timeout_timer() {
 }
 void Session::setup_timeout_timer_coro() {
 	boost::asio::spawn(io_strand, [this](boost::asio::yield_context _yield_ctx) {
-			boost::system::error_code ec;
-			io_timeout_timer.expires_after(io_timeout_duration);
-			io_timeout_timer.async_wait(_yield_ctx[ec]);
+		boost::system::error_code ec;
+#if BOOST_VERSION < 106600
+		io_timeout_timer.expires_from_now(io_timeout_duration);
+#else
+		io_timeout_timer.expires_after(io_timeout_duration);
+#endif
+		io_timeout_timer.async_wait(_yield_ctx[ec]);
 
-			if (ec == boost::asio::error::operation_aborted) {
-				// DO NOT TOUCH MEMORY HERE
+		if (ec == boost::asio::error::operation_aborted) {
+			// DO NOT TOUCH MEMORY HERE
 #ifdef DEBUG
-				LogD("%s[0x%016" PRIxPTR "]:\tio_timer cancelled\n", "Session???", (uintptr_t)this);
+			LogD("%s[0x%016" PRIxPTR "]:\tio_timer cancelled\n", "Session???", (uintptr_t)this);
 #endif
-			} else {
+		} else {
 #ifdef DEBUG
-				LogD("%s[0x%016" PRIxPTR "]:\tsocket timeout\n", ModuleName, (uintptr_t)this);
+			LogD("%s[0x%016" PRIxPTR "]:\tsocket timeout\n", ModuleName, (uintptr_t)this);
 #endif
-				app_ctx->state = 0;
-				close_socket();
-			}
+			app_ctx->state = 0;
+			close_socket();
+		}
 	});
 }
 
