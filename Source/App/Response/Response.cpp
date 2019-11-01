@@ -70,7 +70,7 @@ void ResponseContext::send_headers(uint16_t flags) {
 		if (yield_context)
 			sess->write_async(std::move(Buffer(std::move(ce->http_generator->generate_headers(*this)))), *yield_context);
 		else
-			sess->write_promised(std::move(Buffer(std::move(ce->http_generator->generate_headers(*this)))));
+			sess->inline_async_write(std::move(Buffer(std::move(ce->http_generator->generate_headers(*this)))));
 	}
 }
 
@@ -81,13 +81,13 @@ void ResponseContext::do_write(bool __blocking) {
 		session->write_async(chunk_end, *yield_context);
 	} else {
 		if (__blocking) {
-			session->write_promised((chunk_header(buf_write.size())));
+			session->inline_async_write((chunk_header(buf_write.size())));
 			session->write_blocking(std::move(buf_write));
-			session->write_promised(chunk_end);
+			session->inline_async_write(chunk_end);
 		} else {
-			session->write_promised(std::move(chunk_header(buf_write.size())));
-			session->write_promised(std::move(buf_write));
-			session->write_promised(chunk_end);
+			session->inline_async_write(std::move(chunk_header(buf_write.size())));
+			session->inline_async_write(std::move(buf_write));
+			session->inline_async_write(chunk_end);
 		}
 	}
 }
@@ -129,7 +129,7 @@ void ResponseContext::write(const void *__s, size_t __len, bool __blocking) {
 	auto sess = ce->session;
 
 #ifdef DEBUG
-	LogD("%s[0x%016" PRIxPTR "]:\twrite called, size=%zu\n", "ResponseCtx", (uintptr_t)this, __s.size());
+	LogD("%s[0x%016" PRIxPTR "]:\twrite called, size=%zu\n", "ResponseCtx", (uintptr_t)this, __len);
 #endif
 
 	send_headers(0x1);
@@ -147,7 +147,7 @@ void ResponseContext::do_raw_write(bool __blocking) {
 		if (__blocking)
 			session->write_blocking(std::move(buf_write));
 		else
-			session->write_promised(std::move(buf_write));
+			session->inline_async_write(std::move(buf_write));
 	}
 }
 
@@ -187,7 +187,7 @@ void ResponseContext::end() {
 	if (yield_context)
 		sess->write_async(chunk_all_end, *yield_context);
 	else
-		sess->write_promised(chunk_all_end);
+		sess->inline_async_write(chunk_all_end);
 }
 
 void ResponseContext::send(std::string __s, bool __blocking) {

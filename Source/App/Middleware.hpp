@@ -31,13 +31,28 @@ namespace Marisa {
 	namespace Application {
 		class ContextExposed;
 
+		class Middleware_RawIO {
+		public:
+			ContextExposed *context = nullptr;
+			Server::Session *session = nullptr;
+			boost::asio::yield_context *yield_context = nullptr;
+
+			void __load_context(ContextExposed *__context) noexcept;
+
+			virtual void handler();
+
+			virtual std::unique_ptr<Middleware_RawIO> New() const;
+
+			virtual ~Middleware_RawIO();
+		};
+
 		class Middleware {
 		public:
 			ContextExposed *context = nullptr;
 			Request::RequestContext *request = nullptr;
 			Response::ResponseContext *response = nullptr;
 
-			void reinit_pointers() noexcept;
+			void __load_context(ContextExposed *__context) noexcept;
 
 			void next();
 
@@ -57,9 +72,9 @@ namespace Marisa {
 				return Protocol::HTTP::Parser::decodeURIComponent(__str);
 			}
 
-			virtual void handler();;
+			virtual void handler();
 
-			virtual std::unique_ptr<Middleware> New() const;;
+			virtual std::unique_ptr<Middleware> New() const;
 
 			virtual ~Middleware();
 		};

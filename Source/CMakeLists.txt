@@ -116,6 +116,9 @@ target_link_libraries(example_StaticFiles marisa)
 add_executable(example_StreamedPicUpload Examples/streamed_upload_pic.cpp)
 target_link_libraries(example_StreamedPicUpload marisa)
 
+add_executable(example_RawIO Examples/raw_io.cpp)
+target_link_libraries(example_RawIO marisa)
+
 install(TARGETS marisa
         LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR})
 

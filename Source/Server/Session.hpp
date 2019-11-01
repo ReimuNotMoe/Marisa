@@ -62,6 +62,8 @@ namespace Marisa {
 			virtual void decide_io_action_in_write();
 
 			virtual void setup_timeout_timer();
+			virtual void setup_timeout_timer_coro();
+
 			virtual void error_action(const boost::system::error_code& __err_code);
 
 		public:
@@ -80,27 +82,42 @@ namespace Marisa {
 
 			virtual void start() = 0;
 
-			virtual std::vector<uint8_t> read_async(boost::asio::yield_context& __yield_ctx, size_t __buf_size = 4096);
-			virtual std::future<std::future<std::pair<boost::system::error_code, std::shared_ptr<std::vector<uint8_t>>>>> read_promised(
-				size_t __buf_size = 4096);
+			virtual void reload_context();
+
 			virtual void inline_async_read();
+			virtual void inline_async_read_impl() = 0;
+
+			virtual void arrange_inline_async_write(std::shared_ptr<Session>& keeper, std::shared_ptr<Buffer>& __data);
+
+			virtual void inline_async_write(Buffer __data);
+			virtual void inline_async_write_impl() = 0;
+
+
+			virtual std::vector<uint8_t> read_async(boost::asio::yield_context& __yield_ctx, size_t __buf_size = 4096);
+			virtual std::future<std::future<std::pair<boost::system::error_code, std::shared_ptr<std::vector<uint8_t>>>>> read_async(
+				size_t __buf_size = 4096);
+			virtual void read_async(std::function<void(const boost::system::error_code&, std::vector<uint8_t>)> __cb, size_t __buf_size = 4096);
 			virtual std::vector<uint8_t> read_blocking(size_t __buf_size = 4096);
 
 
-			virtual void inline_async_read_impl() = 0;
-			virtual std::future<std::pair<boost::system::error_code, std::shared_ptr<std::vector<uint8_t>>>> read_promised_impl(
+
+			virtual std::future<std::pair<boost::system::error_code, std::shared_ptr<std::vector<uint8_t>>>> read_async_promised_impl(
 				std::shared_ptr<Session> &__session_keeper, size_t __buf_size) = 0;
-			virtual std::vector<uint8_t> read_async_impl(boost::asio::yield_context& __yield_ctx, size_t __buf_size = 4096) = 0;
+			virtual std::vector<uint8_t> read_async_coro_impl(boost::asio::yield_context &__yield_ctx,
+									  size_t __buf_size = 4096) = 0;
+			virtual void read_async_with_callback_impl(std::function<void(const boost::system::error_code&, std::vector<uint8_t>)> __cb, size_t __buf_size = 4096) = 0;
 
 
 			virtual std::future<boost::system::error_code> arrange_async_write(std::shared_ptr<Session>& keeper, std::shared_ptr<Buffer>& __data);
-			virtual std::future<std::future<boost::system::error_code>> write_promised(Buffer __data);
+
+			virtual std::future<std::future<boost::system::error_code>> write_async(Buffer __data);
 			virtual size_t write_async(Buffer __data, boost::asio::yield_context& __yield_ctx);
+			virtual void write_async(Buffer __data, std::function<void(const boost::system::error_code&, size_t)> __cb);
 			virtual void write_blocking(Buffer __data);
 
-			virtual void write_promised_impl() = 0;
-			virtual size_t write_async_impl(Buffer __data, boost::asio::yield_context& __yield_ctx) = 0;
-
+			virtual void write_async_promised_impl() = 0;
+			virtual size_t write_async_coro_impl(Buffer __data, boost::asio::yield_context &__yield_ctx) = 0;
+			virtual void write_async_with_callback_impl(Buffer __data, std::function<void(const boost::system::error_code&, size_t)> __cb) = 0;
 
 			virtual void close_socket();
 			virtual void close_socket_impl(std::shared_ptr<Session>& keeper) = 0;
@@ -131,17 +148,17 @@ namespace Marisa {
 
 			void start() override;
 
-
-			std::future<std::pair<boost::system::error_code, std::shared_ptr<std::vector<uint8_t>>>> read_promised_impl(
-				std::shared_ptr<Session> &__session_keeper, size_t __buf_size) override;
-
 			void inline_async_read_impl() override;
+			void inline_async_write_impl() override;
 
-			std::vector<uint8_t> read_async_impl(boost::asio::yield_context& __yield_ctx, size_t __buf_size = 4096) override;
+			std::future<std::pair<boost::system::error_code, std::shared_ptr<std::vector<uint8_t>>>> read_async_promised_impl(
+				std::shared_ptr<Session> &__session_keeper, size_t __buf_size) override;
+			std::vector<uint8_t> read_async_coro_impl(boost::asio::yield_context& __yield_ctx, size_t __buf_size = 4096) override;
+			void read_async_with_callback_impl(std::function<void(const boost::system::error_code&, std::vector<uint8_t>)> __cb, size_t __buf_size = 4096) override;
 
-			void write_promised_impl() override;
-
-			size_t write_async_impl(Buffer __data, boost::asio::yield_context& __yield_ctx) override;
+			void write_async_promised_impl() override;
+			size_t write_async_coro_impl(Buffer __data, boost::asio::yield_context &__yield_ctx) override;
+			void write_async_with_callback_impl(Buffer __data, std::function<void(const boost::system::error_code&, size_t)> __cb) override;
 
 			void close_socket_impl(std::shared_ptr<Session>& keeper) override;
 
@@ -165,22 +182,21 @@ namespace Marisa {
 
 			void start() override;
 
-
-			std::future<std::pair<boost::system::error_code, std::shared_ptr<std::vector<uint8_t>>>> read_promised_impl(
-				std::shared_ptr<Session> &__session_keeper, size_t __buf_size) override;
-
 			void inline_async_read_impl() override;
+			void inline_async_write_impl() override;
 
-			std::vector<uint8_t> read_async_impl(boost::asio::yield_context& __yield_ctx, size_t __buf_size = 4096) override;
+			std::future<std::pair<boost::system::error_code, std::shared_ptr<std::vector<uint8_t>>>> read_async_promised_impl(
+				std::shared_ptr<Session> &__session_keeper, size_t __buf_size) override;
+			std::vector<uint8_t> read_async_coro_impl(boost::asio::yield_context& __yield_ctx, size_t __buf_size = 4096) override;
+			void read_async_with_callback_impl(std::function<void(const boost::system::error_code&, std::vector<uint8_t>)> __cb, size_t __buf_size = 4096) override;
 
-			void write_promised_impl() override;
-
-			size_t write_async_impl(Buffer __data, boost::asio::yield_context& __yield_ctx) override;
+			void write_async_promised_impl() override;
+			size_t write_async_coro_impl(Buffer __data, boost::asio::yield_context &__yield_ctx) override;
+			void write_async_with_callback_impl(Buffer __data, std::function<void(const boost::system::error_code&, size_t)> __cb) override;
 
 			void close_socket_impl(std::shared_ptr<Session>& keeper) override;
 
 			void handler_handshake(std::shared_ptr<SessionSSL>& __session_keeper, const boost::system::error_code &error);
-
 
 			std::shared_ptr<Session> my_shared_from_this() override;
 		};
@@ -205,19 +221,19 @@ namespace Marisa {
 
 			void start() override;
 
-			std::future<std::pair<boost::system::error_code, std::shared_ptr<std::vector<uint8_t>>>> read_promised_impl(
-				std::shared_ptr<Session> &__session_keeper, size_t __buf_size) override;
-
 			void inline_async_read_impl() override;
+			void inline_async_write_impl() override;
 
-			std::vector<uint8_t> read_async_impl(boost::asio::yield_context& __yield_ctx, size_t __buf_size = 4096) override;
+			std::future<std::pair<boost::system::error_code, std::shared_ptr<std::vector<uint8_t>>>> read_async_promised_impl(
+				std::shared_ptr<Session> &__session_keeper, size_t __buf_size) override;
+			std::vector<uint8_t> read_async_coro_impl(boost::asio::yield_context& __yield_ctx, size_t __buf_size = 4096) override;
+			void read_async_with_callback_impl(std::function<void(const boost::system::error_code&, std::vector<uint8_t>)> __cb, size_t __buf_size = 4096) override;
 
-			void write_promised_impl() override;
-
-			size_t write_async_impl(Buffer __data, boost::asio::yield_context& __yield_ctx) override;
+			void write_async_promised_impl() override;
+			size_t write_async_coro_impl(Buffer __data, boost::asio::yield_context &__yield_ctx) override;
+			void write_async_with_callback_impl(Buffer __data, std::function<void(const boost::system::error_code&, size_t)> __cb) override;
 
 			void close_socket_impl(std::shared_ptr<Session>& keeper) override;
-
 
 			std::shared_ptr<Session> my_shared_from_this() override;
 		};

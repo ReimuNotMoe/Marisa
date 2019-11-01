@@ -34,6 +34,7 @@ namespace Marisa {
 
 	namespace Application {
 		class Route;
+		class Middleware_RawIO;
 
 		class App {
 		protected:
@@ -51,6 +52,9 @@ namespace Marisa {
 
 			// unsigned int app_threads = 1; // No suitable thread pool found so far
 			size_t nr_io_threads = 1;
+
+			uint32_t flags = 0;
+			std::unique_ptr<Middleware_RawIO> raw_mw = nullptr;
 
 			void run_io(size_t __threads);
 		public:
@@ -82,6 +86,8 @@ namespace Marisa {
 			Route &route(const std::string &__route);
 			Route &route(std::regex __route_regex);
 
+			void use_raw(const Middleware_RawIO& __ref_mw, bool __async=false);
+
 			void run(size_t __threads_per_io_service = 1);
 			void stop();
 
@@ -99,6 +105,8 @@ namespace Marisa {
 			using App::route_global;
 			using App::route_mapping;
 
+			using App::flags;
+			using App::raw_mw;
 //			using App::io_threads;
 //			using App::app_threads;
 		};

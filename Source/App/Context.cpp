@@ -141,6 +141,74 @@ void Context::process_request_data(uint8_t *__buf, size_t __len) {
 	}
 
 	// Run App
+	run_handler();
+
+	// No suitable thread pool found so far
+	//  session->instance.app_thread_pool->enqueue([](Context *__ctx, void *__ptr) { container_thread(__ctx, __ptr); }, this, sptr);
+	//  session->instance.app_thread_pool->submit(Context::container_thread, this, (void *)sptr);
+
+}
+
+void Context::run_raw_handler() {
+	if (app.flags & 0x1000) {
+		boost::asio::spawn(session->io_strand, [&, s = std::shared_ptr<Session>(session->my_shared_from_this())](boost::asio::yield_context yield){
+			state |= STATE_THREAD_RUNNING;
+			yield_context = &yield;
+
+			auto cur_mw = app.raw_mw->New();
+			cur_mw->__load_context(static_cast<ContextExposed *>(this));
+
+			if (app.config.app.catch_unhandled_exception) {
+				try {
+					cur_mw->handler();
+					LogD("%s[0x%016" PRIxPTR "]:\tdone running raw handler\n", ModuleName, (uintptr_t) this);
+				} catch (std::exception &e) {
+					LogE("%s[0x%016" PRIxPTR "]:\tuncaught exception in raw middleware at %p: %s\n",
+					     ModuleName, (uintptr_t) this, app.raw_mw.get(),
+					     e.what());
+				}
+			} else {
+				cur_mw->handler();
+				LogD("%s[0x%016" PRIxPTR "]:\tdone running raw handler\n", ModuleName, (uintptr_t) this);
+			}
+
+			session->close_socket();
+
+			state &= ~STATE_THREAD_RUNNING;
+		});
+	} else { // Run in thread
+		state |= STATE_THREAD_RUNNING;
+
+		container = std::thread([&, s = std::shared_ptr<Session>(session->my_shared_from_this())](){
+			auto cur_mw = app.raw_mw->New();
+			cur_mw->__load_context(static_cast<ContextExposed *>(this));
+
+			if (app.config.app.catch_unhandled_exception) {
+				try {
+					cur_mw->handler();
+					LogD("%s[0x%016" PRIxPTR "]:\tdone running raw handler\n", ModuleName, (uintptr_t) this);
+				} catch (std::exception &e) {
+					LogE("%s[0x%016" PRIxPTR "]:\tuncaught exception in raw middleware at %p: %s\n",
+					     ModuleName, (uintptr_t) this, app.raw_mw.get(),
+					     e.what());
+				}
+			} else {
+				try {
+					cur_mw->handler();
+					LogD("%s[0x%016" PRIxPTR "]:\tdone running raw handler\n", ModuleName, (uintptr_t) this);
+				} catch (...) {
+					state &= ~STATE_THREAD_RUNNING;
+					throw;
+				}
+			}
+
+			state &= ~STATE_THREAD_RUNNING;
+		});
+		container.detach();
+	}
+}
+
+void Context::run_handler() {
 	// Route declared async, run it here
 	if (route->mode_no_yield) {
 		if (app.config.app.catch_unhandled_exception) {
@@ -157,6 +225,8 @@ void Context::process_request_data(uint8_t *__buf, size_t __len) {
 		}
 
 		response.reset();
+
+		session->reload_context();
 	} else if (route->mode_async) {
 		boost::asio::spawn(session->io_strand, [this, s = std::shared_ptr<Session>(session->my_shared_from_this())](boost::asio::yield_context yield){
 			state |= STATE_THREAD_RUNNING;
@@ -177,19 +247,17 @@ void Context::process_request_data(uint8_t *__buf, size_t __len) {
 
 			response.reset();
 			state &= ~STATE_THREAD_RUNNING;
+
+			session->reload_context();
 		});
 	} else { // Run in thread
 		std::shared_ptr<Session> *sptr = new std::shared_ptr<Session>(session->my_shared_from_this());
+		state |= STATE_THREAD_RUNNING;
 		container = std::thread(&ContextExposed::container_thread, this, sptr);
 		container.detach();
-		state |= STATE_THREAD_RUNNING;
 	}
-
-	// No suitable thread pool found so far
-	//  session->instance.app_thread_pool->enqueue([](Context *__ctx, void *__ptr) { container_thread(__ctx, __ptr); }, this, sptr);
-	//  session->instance.app_thread_pool->submit(Context::container_thread, this, (void *)sptr);
-
 }
+
 
 void Context::use_default_status_page(const HTTP::Status &__status) {
 	ResponseContext rsp_ctx(this);
@@ -199,8 +267,8 @@ void Context::use_default_status_page(const HTTP::Status &__status) {
 	rsp_ctx.headers["Content-Length"] = std::to_string(page.size());
 
 
-	session->write_promised(std::move(Buffer(std::move(http_generator->generate_all(rsp_ctx)))));
-	session->write_promised(std::move(Buffer(std::move(page))));
+	session->inline_async_write(std::move(Buffer(std::move(http_generator->generate_all(rsp_ctx)))));
+	session->inline_async_write(std::move(Buffer(std::move(page))));
 }
 
 void Context::container_thread(Context *__ctx, void *__session_sptr) {
@@ -229,6 +297,9 @@ void Context::container_thread(Context *__ctx, void *__session_sptr) {
 #endif
 
 	__ctx->state &= ~STATE_THREAD_RUNNING;
+
+	__ctx->session->reload_context();
+
 	delete sptr; // This kind of memory management sucks
 }
 
@@ -244,8 +315,7 @@ void Context::next() {
 	} else {
 		auto cur_mw = h.middleware_list[h.pos_cur_handler]->New();
 
-		cur_mw->context = static_cast<ContextExposed *>(this);
-		cur_mw->reinit_pointers();
+		cur_mw->__load_context(static_cast<ContextExposed *>(this));
 
 #ifdef DEBUG
 		LogD("%s[0x%016" PRIxPTR "]:\tcalling middleware #%zu at %p\n", ModuleName, (uintptr_t)this, h.pos_cur_handler, cur_mw.get());
@@ -290,6 +360,9 @@ Context::Context(AppExposed &__ref_app, boost::asio::io_service& __io_svc, boost
 	http_parser = std::make_unique<HTTP1::Parser>();
 	http_generator = std::make_unique<HTTP1::Generator>();
 }
+
+
+
 
 
 
