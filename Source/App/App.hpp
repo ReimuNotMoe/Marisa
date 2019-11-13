@@ -71,6 +71,11 @@ namespace Marisa {
 				struct app {
 					bool catch_unhandled_exception = true;
 				} app;
+
+				struct global_callbacks {
+					std::function<void()> pre_iosvc_run;
+				} global_callbacks;
+
 			} config;
 
 			App() = default;

@@ -25,10 +25,18 @@ using namespace Marisa::Log;
 void Instance::run() {
 	run_impl();
 
+	auto &cbs = app.config.global_callbacks;
+
+	if (cbs.pre_iosvc_run) {
+		LogD("%s[0x%016" PRIxPTR "]:\tCalling user defined callback: pre_iosvc_run\n", ModuleName, (uintptr_t)this);
+		cbs.pre_iosvc_run();
+	}
+
 	LogI("%s[0x%016" PRIxPTR "]:\tStarting server\n", ModuleName, (uintptr_t)this);
 //	LogI("%s[0x%016" PRIxPTR "]:\trun: Starting %u threads for application\n", ModuleName, (uintptr_t)this, app.app_threads);
 //	app_thread_pool = std::make_unique<ThreadPool>(app.app_threads);
 	prepare_next_session();
+
 	boost::system::error_code iosvc_error;
 	io_service.run(iosvc_error);
 	LogI("%s[0x%016" PRIxPTR "]:\trun: io_service runner exited: %s\n", ModuleName, (uintptr_t)this, iosvc_error.message().c_str());
