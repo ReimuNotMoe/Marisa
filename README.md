@@ -49,7 +49,11 @@ Nearly all my projects use CMake. It's very simple:
 The project is in alpha state. It's not recommended to use in production environments.
 
 ## History & Story
-The idea and name are based on a plain C HTTP server project I was working on when I was at school. It worked like PHP, but every webpage is a shared library (.so/.dll).
+The name "Marisa" is derived from a [Touhou Project character](https://en.touhouwiki.net/wiki/Marisa_Kirisame), who rides a broom and flies fast.
+
+The idea is based on a plain C HTTP server project I was working on when I was at school. It was called "Marisa" since then. It worked like PHP, but every webpage is a shared library (.so/.dll).
+
+---
 
 Time flies. Half a year ago, in a conversation about teamwork, my boss (at that time) told me:
 
@@ -57,8 +61,18 @@ Time flies. Half a year ago, in a conversation about teamwork, my boss (at that 
 
 I totally don't agree with this.
 
-But anyway, finally they decided to use some programming language that doesn't have exceptions, and enters kernel three times a row in order to complete a single `sleep()`. In my opinion, this is totally a disaster for large projects.
+But anyway, finally they decided to use some programming language that doesn't have exceptions, has garbage collection, and enters kernel three times a row in order to complete a single `sleep()`. In my opinion, this is totally a disaster for large projects.
 
 Eventually, I decided to restart this project.
 
 It's 2019 now, the PHP style is pretty outdated, while express-like style works a better way. So this is a complete redesign.
+
+---
+
+Recently some Google guy told me:
+
+    Labor cost of one software engineer worths cost of 100TB of RAM sticks.
+
+I feel a bit meh.
+
+We need more practise in efficient computing, at least for reducing carbon emission. Lol.
