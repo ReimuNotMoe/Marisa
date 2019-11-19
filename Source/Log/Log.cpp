@@ -50,7 +50,7 @@ void Marisa::Log::LogD(const char *__fmt, ...) {
 		std::string buf = datestr_wrapper();
 		if (Color)
 			buf += color_purple;
-		buf += " Debug: ";
+		buf += " D ";
 		if (Color)
 			buf += color_end;
 		buf += __fmt;
@@ -67,7 +67,7 @@ void Marisa::Log::LogI(const char *__fmt, ...) {
 		std::string buf = datestr_wrapper();
 		if (Color)
 			buf += color_green;
-		buf += " Info:  ";
+		buf += " I ";
 		if (Color)
 			buf += color_end;
 		buf += __fmt;
@@ -84,7 +84,7 @@ void Marisa::Log::LogW(const char *__fmt, ...) {
 		std::string buf = datestr_wrapper();
 		if (Color)
 			buf += color_yellow;
-		buf += " Warn:  ";
+		buf += " W ";
 		if (Color)
 			buf += color_end;
 		buf += __fmt;
@@ -101,7 +101,7 @@ void Marisa::Log::LogE(const char *__fmt, ...) {
 		std::string buf = datestr_wrapper();
 		if (Color)
 			buf += color_red;
-		buf += " Error: ";
+		buf += " E ";
 		if (Color)
 			buf += color_end;
 		buf += __fmt;

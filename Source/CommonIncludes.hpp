@@ -19,7 +19,7 @@
 #ifndef MARISA_COMMONINCLUDES_HPP
 #define MARISA_COMMONINCLUDES_HPP
 
-#define DEBUG
+//#define DEBUG
 
 #include <string>
 #include <thread>
