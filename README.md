@@ -1,5 +1,6 @@
 # Marisa
 [![pipeline status](https://gitlab.com/ReimuNotMoe/Marisa-Github/badges/master/pipeline.svg)](https://gitlab.com/ReimuNotMoe/Marisa-Github/pipelines)
+[![Codacy Badge](https://api.codacy.com/project/badge/Grade/a7b5b8bd05be401f9066852f8e8b3b43)](https://www.codacy.com/manual/ReimuNotMoe/Marisa?utm_source=github.com&amp;utm_medium=referral&amp;utm_content=ReimuNotMoe/Marisa&amp;utm_campaign=Badge_Grade)
 [![coverage report](https://gitlab.com/ReimuNotMoe/Marisa-Github/badges/master/coverage.svg)](https://gitlab.com/ReimuNotMoe/Marisa-Github/pipelines)
 
 
