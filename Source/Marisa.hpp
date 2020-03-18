@@ -31,9 +31,9 @@
 
 using namespace Marisa::Types;
 
-#define MARISA_VERSION_MAJOR		0
+#define MARISA_VERSION_MAJOR		1
 #define MARISA_VERSION_MINOR		0
-#define MARISA_VERSION_REV		1
+#define MARISA_VERSION_REV		0
 
 namespace Marisa {
 	extern const char Version[];

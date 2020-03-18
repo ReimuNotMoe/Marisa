@@ -18,4 +18,4 @@
 
 #include "Marisa.hpp"
 
-const char Marisa::Version[] = "0.0.1";
+const char Marisa::Version[] = "1.0.0";
