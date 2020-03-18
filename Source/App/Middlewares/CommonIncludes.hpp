@@ -16,8 +16,7 @@
     along with this program.  If not, see <https://www.gnu.org/licenses/>.
 */
 
-#ifndef MARISA_APP_MW_COMMONINCLUDES_HPP
-#define MARISA_APP_MW_COMMONINCLUDES_HPP
+#pragma once
 
 #include "../Context.hpp"
 #include "../Middleware.hpp"
@@ -25,4 +24,3 @@
 
 using namespace Marisa::Utilities;
 
-#endif //MARISA_APP_MW_COMMONINCLUDES_HPP

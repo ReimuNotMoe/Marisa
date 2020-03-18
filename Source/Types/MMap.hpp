@@ -16,10 +16,17 @@
     along with this program.  If not, see <https://www.gnu.org/licenses/>.
 */
 
-#ifndef MARISA_TYPE_MMAP_HPP
-#define MARISA_TYPE_MMAP_HPP
+#pragma once
 
-#include "../CommonIncludes.hpp"
+#include <string>
+#include <system_error>
+
+#include <cstdlib>
+#include <cstring>
+
+#include <fcntl.h>
+#include <unistd.h>
+#include <sys/mman.h>
 
 namespace Marisa {
 	namespace Types {
@@ -59,5 +66,3 @@ namespace Marisa {
 		};
 	}
 }
-
-#endif //MARISA_MMAP_HPP

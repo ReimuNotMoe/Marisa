@@ -16,10 +16,9 @@
     along with this program.  If not, see <https://www.gnu.org/licenses/>.
 */
 
-#ifndef MARISA_LOG_HPP
-#define MARISA_LOG_HPP
+#pragma once
 
-#include "../CommonIncludes.hpp"
+#include <cinttypes>
 
 namespace Marisa {
 	namespace Log {
@@ -42,4 +41,3 @@ namespace Marisa {
 		extern void LogE(const char *__fmt, ...) __attribute__ ((format (printf, 1, 2)));
 	}
 }
-#endif //MARISA_LOG_HPP

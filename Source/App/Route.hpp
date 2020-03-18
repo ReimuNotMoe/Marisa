@@ -16,10 +16,8 @@
     along with this program.  If not, see <https://www.gnu.org/licenses/>.
 */
 
-#ifndef MARISA_APP_ROUTE_HPP
-#define MARISA_APP_ROUTE_HPP
+#pragma once
 
-#include "../CommonIncludes.hpp"
 #include "../Server/Instance.hpp"
 #include "../Protocol/HTTP/HTTP.hpp"
 #include "Middleware.hpp"
@@ -89,5 +87,3 @@ namespace Marisa {
 		};
 	}
 }
-
-#endif //MARISA_APP_ROUTE_HPP

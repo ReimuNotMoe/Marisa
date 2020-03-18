@@ -16,8 +16,7 @@
     along with this program.  If not, see <https://www.gnu.org/licenses/>.
 */
 
-#ifndef MARISA_PROTOCOL_HTTP_METHOD_HPP
-#define MARISA_PROTOCOL_HTTP_METHOD_HPP
+#pragma once
 
 #include "CommonIncludes.hpp"
 
@@ -111,5 +110,3 @@ namespace Marisa {
 		}
 	}
 }
-
-#endif //MARISA_PROTOCOL_HTTP_METHOD_HPP

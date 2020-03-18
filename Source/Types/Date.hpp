@@ -16,10 +16,11 @@
     along with this program.  If not, see <https://www.gnu.org/licenses/>.
 */
 
-#ifndef MARISA_TYPE_DATE_HPP
-#define MARISA_TYPE_DATE_HPP
+#pragma once
 
-#include "../CommonIncludes.hpp"
+#include <string>
+
+#include <ctime>
 
 namespace Marisa {
 
@@ -55,5 +56,3 @@ namespace Marisa {
 		};
 	}
 }
-
-#endif //MARISA_TYPE_DATE_HPP

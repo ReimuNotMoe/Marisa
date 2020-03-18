@@ -16,14 +16,10 @@
     along with this program.  If not, see <https://www.gnu.org/licenses/>.
 */
 
-#ifndef MARISA_PROTOCOL_HPP
-#define MARISA_PROTOCOL_HPP
-
-#include "../CommonIncludes.hpp"
+#pragma once
 
 namespace Marisa {
 	namespace Protocol {
 
 	}
 }
-#endif //MARISA_PROTOCOL_HPP

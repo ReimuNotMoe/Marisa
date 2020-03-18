@@ -19,7 +19,6 @@
 #ifndef MARISA_UTILITIES_HPP
 #define MARISA_UTILITIES_HPP
 
-#include "../CommonIncludes.hpp"
 #include "../Protocol/HTTP/HTTP.hpp"
 
 using namespace Marisa::Protocol::HTTP;

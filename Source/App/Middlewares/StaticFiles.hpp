@@ -16,8 +16,10 @@
     along with this program.  If not, see <https://www.gnu.org/licenses/>.
 */
 
-#ifndef MARISA_APPMW_STATICFILES_HPP
-#define MARISA_APPMW_STATICFILES_HPP
+#pragma once
+
+#include <sys/types.h>
+#include <dirent.h>
 
 #include "CommonIncludes.hpp"
 
@@ -44,4 +46,3 @@ namespace Marisa::Application::Middlewares {
 		}
 	};
 }
-#endif //MARISA_APPMW_STATICFILES_HPP

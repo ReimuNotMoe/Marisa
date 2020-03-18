@@ -16,10 +16,15 @@
     along with this program.  If not, see <https://www.gnu.org/licenses/>.
 */
 
-#ifndef MARISA_APP_APP_HPP
-#define MARISA_APP_APP_HPP
+#pragma once
 
-#include "../CommonIncludes.hpp"
+#include <vector>
+#include <memory>
+#include <regex>
+
+#include <boost/asio.hpp>
+#include <boost/asio/ssl.hpp>
+
 #include "../Server/Instance.hpp"
 #include "../Protocol/HTTP/HTTP.hpp"
 #include "Middleware.hpp"
@@ -117,4 +122,3 @@ namespace Marisa {
 		};
 	}
 }
-#endif //MARISA_APP_APP_HPP

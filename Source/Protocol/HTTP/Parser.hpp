@@ -16,8 +16,7 @@
     along with this program.  If not, see <https://www.gnu.org/licenses/>.
 */
 
-#ifndef MARISA_PROTOCOL_HTTP_PARSER_HPP
-#define MARISA_PROTOCOL_HTTP_PARSER_HPP
+#pragma once
 
 #include "CommonIncludes.hpp"
 #include "Status.hpp"
@@ -104,5 +103,3 @@ namespace Marisa {
 		};
 	}
 }
-
-#endif //MARISA_PROTOCOL_HTTP_PARSER_HPP

@@ -16,13 +16,10 @@
     along with this program.  If not, see <https://www.gnu.org/licenses/>.
 */
 
-#ifndef MARISA_APP_MIDDLEWARES_HPP
-#define MARISA_APP_MIDDLEWARES_HPP
+#pragma once
 
 #include "Compression.hpp"
 #include "StaticFiles.hpp"
 #include "Redirection.hpp"
 #include "Simple.hpp"
 #include "Lambda.hpp"
-
-#endif //MARISA_MIDDLEWARES_HPP

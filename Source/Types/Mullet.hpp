@@ -16,10 +16,12 @@
     along with this program.  If not, see <https://www.gnu.org/licenses/>.
 */
 
-#ifndef MARISA_TYPE_MULTIPARTPARSER_HPP
-#define MARISA_TYPE_MULTIPARTPARSER_HPP
+#pragma once
 
-#include "../CommonIncludes.hpp"
+#include <unordered_map>
+#include <deque>
+#include <vector>
+
 #include "../3rdParty/multipart-parser/MultipartParser.h"
 #include "../3rdParty/multipart-parser/MultipartReader.h"
 
@@ -66,6 +68,3 @@ namespace Marisa {
 		};
 	}
 }
-
-
-#endif //MARISA_TYPE_MULTIPARTPARSER_HPP

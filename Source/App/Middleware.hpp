@@ -16,10 +16,8 @@
     along with this program.  If not, see <https://www.gnu.org/licenses/>.
 */
 
-#ifndef MARISA_APP_MIDDLEWARE_HPP
-#define MARISA_APP_MIDDLEWARE_HPP
+#pragma once
 
-#include "../CommonIncludes.hpp"
 #include "Context.hpp"
 #include "../Log/Log.hpp"
 #include "Request/Request.hpp"
@@ -80,4 +78,3 @@ namespace Marisa {
 		};
 	}
 }
-#endif //MARISA_APP_MIDDLEWARE_HPP

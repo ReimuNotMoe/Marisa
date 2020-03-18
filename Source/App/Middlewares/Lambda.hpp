@@ -16,8 +16,7 @@
     along with this program.  If not, see <https://www.gnu.org/licenses/>.
 */
 
-#ifndef MARISA_APPMW_LAMBDA_HPP
-#define MARISA_APPMW_LAMBDA_HPP
+#pragma once
 
 #include "CommonIncludes.hpp"
 
@@ -42,5 +41,3 @@ namespace Marisa::Application::Middlewares {
 
 	};
 }
-
-#endif //MARISA_APPMW_LAMBDA_HPP

@@ -5,7 +5,6 @@ ENABLE_TESTING()
 set(CMAKE_CXX_STANDARD 17)
 
 set(SOURCE_FILES
-        CommonIncludes.hpp
 
         Marisa.hpp Marisa.cpp
 
@@ -125,7 +124,7 @@ install(TARGETS marisa
 install(TARGETS marisa_static
         DESTINATION ${CMAKE_INSTALL_LIBDIR})
 
-install(FILES CommonIncludes.hpp Marisa.hpp DESTINATION "include/Marisa")
+install(FILES Marisa.hpp DESTINATION "include/Marisa")
 install(DIRECTORY ${CMAKE_SOURCE_DIR}/App ${CMAKE_SOURCE_DIR}/Log ${CMAKE_SOURCE_DIR}/Protocol
         ${CMAKE_SOURCE_DIR}/Server ${CMAKE_SOURCE_DIR}/Tests ${CMAKE_SOURCE_DIR}/Types ${CMAKE_SOURCE_DIR}/Utilities
         DESTINATION "include/Marisa"

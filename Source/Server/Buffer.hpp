@@ -16,10 +16,19 @@
     along with this program.  If not, see <https://www.gnu.org/licenses/>.
 */
 
-#ifndef MARISA_SERVER_BUFFER_HPP
-#define MARISA_SERVER_BUFFER_HPP
+#pragma once
 
-#include "../CommonIncludes.hpp"
+#include <vector>
+#include <string>
+#include <memory>
+
+#include <cstring>
+
+#define BOOST_COROUTINES_NO_DEPRECATION_WARNING
+#include <boost/asio.hpp>
+#include <boost/asio/ssl.hpp>
+#include <boost/asio/buffer.hpp>
+#include <boost/asio/spawn.hpp>
 
 // Strive for zero copy!
 
@@ -86,7 +95,3 @@ namespace Marisa {
 		};
 	}
 }
-
-
-
-#endif //MARISA_BUFFER_HPP

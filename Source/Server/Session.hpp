@@ -16,14 +16,21 @@
     along with this program.  If not, see <https://www.gnu.org/licenses/>.
 */
 
-#ifndef MARISA_SERVER_SESSION_HPP
-#define MARISA_SERVER_SESSION_HPP
+#pragma once
 
-#include "../CommonIncludes.hpp"
+#define BOOST_COROUTINES_NO_DEPRECATION_WARNING
+#include <boost/bind.hpp>
+#include <boost/asio.hpp>
+#include <boost/asio/ssl.hpp>
+#include <boost/asio/buffer.hpp>
+#include <boost/asio/spawn.hpp>
+#include <boost/asio/system_timer.hpp>
+
 #include "../App/Context.hpp"
 #include "../App/Route.hpp"
 #include "../App/App.hpp"
 #include "../Log/Log.hpp"
+
 #include "ConnectionContext.hpp"
 #include "Instance.hpp"
 #include "Buffer.hpp"
@@ -239,5 +246,3 @@ namespace Marisa {
 		};
 	}
 }
-
-#endif //MARISA_SERVER_SESSION_HPP

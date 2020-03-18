@@ -16,10 +16,8 @@
     along with this program.  If not, see <https://www.gnu.org/licenses/>.
 */
 
-#ifndef MARISA_SERVER_INSTANCE_HPP
-#define MARISA_SERVER_INSTANCE_HPP
+#pragma once
 
-#include "../CommonIncludes.hpp"
 #include "../App/Route.hpp"
 #include "../Log/Log.hpp"
 
@@ -115,5 +113,3 @@ namespace Marisa {
 	}
 
 }
-
-#endif //MARISA_SERVER_INSTANCE_HPP

@@ -16,8 +16,9 @@
     along with this program.  If not, see <https://www.gnu.org/licenses/>.
 */
 
-#ifndef MARISA_APPMW_COMPRESSION_HPP
-#define MARISA_APPMW_COMPRESSION_HPP
+#pragma once
+
+#include <zlib.h>
 
 #include "CommonIncludes.hpp"
 #include "../Response/Response.hpp"
@@ -86,5 +87,3 @@ namespace Marisa::Application::Middlewares {
 		}
 	};
 }
-
-#endif //MARISA_COMPRESSION_HPP

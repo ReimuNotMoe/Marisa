@@ -16,10 +16,13 @@
     along with this program.  If not, see <https://www.gnu.org/licenses/>.
 */
 
-#ifndef MARISA_APP_CONTEXT_HPP
-#define MARISA_APP_CONTEXT_HPP
+#pragma once
 
-#include "../CommonIncludes.hpp"
+#define BOOST_COROUTINES_NO_DEPRECATION_WARNING
+#include <boost/asio.hpp>
+#include <boost/asio/spawn.hpp>
+#include <boost/asio/ssl.hpp>
+
 #include "App.hpp"
 #include "Response/Response.hpp"
 #include "Request/Request.hpp"
@@ -123,5 +126,3 @@ namespace Marisa {
 	}
 
 }
-
-#endif //MARISA_APP_CONTEXT_HPP

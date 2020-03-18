@@ -16,10 +16,13 @@
     along with this program.  If not, see <https://www.gnu.org/licenses/>.
 */
 
-#ifndef MARISA_PROTOCOL_HTTP_COMMONINCLUDES_HPP
-#define MARISA_PROTOCOL_HTTP_COMMONINCLUDES_HPP
+#pragma once
+
+#include <string>
+#include <vector>
+#include <unordered_map>
+
+#include <cstring>
 
 #include "../Protocol.hpp"
 #include "../../3rdParty/http-parser/http_parser.h"
-
-#endif //MARISA_PROTOCOL_HTTP_COMMONINCLUDES_HPP

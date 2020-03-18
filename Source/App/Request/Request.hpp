@@ -16,10 +16,11 @@
     along with this program.  If not, see <https://www.gnu.org/licenses/>.
 */
 
-#ifndef MARISA_APP_REQUEST_HPP
-#define MARISA_APP_REQUEST_HPP
+#pragma once
 
-#include "../../CommonIncludes.hpp"
+#include <vector>
+#include <unordered_map>
+
 #include "../../Protocol/HTTP/HTTP.hpp"
 #include "../../Types/Date.hpp"
 #include "../../Server/ConnectionContext.hpp"
@@ -76,5 +77,3 @@ namespace Marisa {
 		}
 	}
 }
-
-#endif //MARISA_APP_REQUEST_HPP

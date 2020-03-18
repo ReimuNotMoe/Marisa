@@ -16,10 +16,12 @@
     along with this program.  If not, see <https://www.gnu.org/licenses/>.
 */
 
-#ifndef MARISA_TYPE_BASE64_HPP
-#define MARISA_TYPE_BASE64_HPP
+#pragma once
 
-#include "../CommonIncludes.hpp"
+#include <string>
+
+#include <cstdlib>
+
 #include "../3rdParty/base64/include/libbase64.h"
 
 namespace Marisa {
@@ -55,4 +57,3 @@ namespace Marisa {
 		}
 	}
 }
-#endif //MARISA_TYPE_BASE64_HPP
