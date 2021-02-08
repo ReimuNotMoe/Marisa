@@ -174,8 +174,13 @@ MHD_Result App::mhd_connection_handler(void *cls, struct MHD_Connection *connect
 				if (((RequestExposed *)&ctx->request)->input_sp_send_end_closed) {
 					app->logger_internal->debug("[{} @ {:x}] fd_input ALREADY shutdown", ModuleName, (intptr_t)app);
 				} else {
-					socket_input.shutdown();
-					app->logger_internal->debug("[{} @ {:x}] fd_input shutdown", ModuleName, (intptr_t)app);
+					try {
+						socket_input.shutdown();
+						app->logger_internal->debug("[{} @ {:x}] fd_input shutdown", ModuleName, (intptr_t) app);
+					} catch (std::exception &e) {
+						app->logger_internal->warn("[{} @ {:x}] shutdown failed: {}", ModuleName, (intptr_t) app, e.what());
+
+					}
 //					close(fd_input);
 					((RequestExposed *)&ctx->request)->input_sp_send_end_closed = true;
 					ctx->conn_state_cv.notify_one();
@@ -263,7 +268,12 @@ ssize_t App::mhd_streamed_response_reader(void *cls, uint64_t pos, char *buf, si
 void App::mhd_streamed_response_read_done(void *cls) {
 	auto *ctx = (Context *)cls;
 //	auto &sock = ((ResponseContextExposed *)&ctx->response)->output_sp.first;
-	((ResponseExposed *)&ctx->response)->output_sp.first.shutdown();
+	try {
+		((ResponseExposed *) &ctx->response)->output_sp.first.shutdown();
+	} catch (std::exception &e) {
+		ctx->app->logger_internal->warn("[{} @ {:x}] streamed_response_read_done: shutdown failed: {}", ModuleName, (intptr_t)ctx->app, e.what());
+
+	}
 	ctx->app->logger_internal->debug("[{} @ {:x}] streamed_response_read_done: ctx={}, fd={}", ModuleName, (intptr_t)ctx->app, cls,
 					 ((ResponseExposed *)&ctx->response)->output_sp.first.fd());
 

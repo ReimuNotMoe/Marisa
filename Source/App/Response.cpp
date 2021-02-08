@@ -86,7 +86,12 @@ void Response::write(const void *buf, size_t len) {
 						logger->error(R"([{} @ {:x}] write errno: {})", ModuleName, (intptr_t)this, errno);
 
 						finalized = true;
-						output_sp.second.shutdown();
+						try {
+							output_sp.second.shutdown();
+						} catch (std::exception &e) {
+							logger->warn("[{} @ {:x}] shutdown failed: {}", ModuleName, (intptr_t)this, e.what());
+
+						}
 						break;
 					}
 				}

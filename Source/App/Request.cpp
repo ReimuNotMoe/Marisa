@@ -171,7 +171,12 @@ std::vector<uint8_t> Request::read() {
 			break;
 		} else if (rc_recv == 0) {
 			ret.resize(0);
-			input_sp.second.shutdown();
+			try {
+				input_sp.second.shutdown();
+			} catch (std::exception &e) {
+				logger->warn("[{} @ {:x}] shutdown failed: {}", ModuleName, (intptr_t)this, e.what());
+
+			}
 			break;
 		} else {
 			if (errno == EAGAIN || errno == EWOULDBLOCK) {
@@ -282,13 +287,13 @@ Request::mhd_post_processor(void *cls, enum MHD_ValueKind kind, const char *key,
 }
 
 MHD_Result Request::mhd_streamed_post_processor(void *cls, enum MHD_ValueKind kind, const char *key, const char *filename, const char *content_type, const char *transfer_encoding,
-					 const char *data, uint64_t off, size_t size) {
+						const char *data, uint64_t off, size_t size) {
 	auto *ctx = (Request *)cls;
 
 	(*ctx->post_callback_ptr)(key, {data, size}, filename, content_type, transfer_encoding);
 
 	logger_sf->trace("[{} @ {:x}] mhd_streamed_post_processor: kind: {}, key: {}, filename: {}, content_type: {}, transfer_encoding: {}, data: {}, off: {}, size: {}",
-		  ModuleName, (intptr_t)ctx, kind, key, filename, content_type, transfer_encoding, data, off, size);
+			 ModuleName, (intptr_t)ctx, kind, key, filename, content_type, transfer_encoding, data, off, size);
 
 
 	return MHD_YES;
