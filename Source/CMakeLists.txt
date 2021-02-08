@@ -52,6 +52,8 @@ CPMAddPackage(
         VERSION 0.0.2
 )
 
+include(cmake/Findlibmicrohttpd.cmake)
+
 set(SOURCE_FILES
 
         Marisa.hpp Version.hpp
@@ -78,6 +80,7 @@ set(SOURCE_FILES
         Util/URLEncode.cpp App/Middlewares/Dashboard.cpp App/Middlewares/Dashboard.hpp)
 
 #include_directories(${IODash_SOURCE_DIR})
+include_directories(${LIBMICROHTTPD_INCLUDE_DIR})
 include_directories(${fmt_SOURCE_DIR}/include)
 include_directories(${spdlog_SOURCE_DIR}/include)
 include_directories(${ThreadPool_SOURCE_DIR})
@@ -86,7 +89,7 @@ include_directories(${cpp-base64X_SOURCE_DIR})
 add_library(marisa ${SOURCE_FILES})
 
 
-target_link_libraries(marisa pthread z ssl crypto fmt cpp-base64X IODash ReGlob microhttpd)
+target_link_libraries(marisa pthread z ssl crypto fmt cpp-base64X IODash ReGlob ${LIBMICROHTTPD_LIBRARIES})
 
 
 #add_executable(test_Coverage Tests/coverage.cpp)
