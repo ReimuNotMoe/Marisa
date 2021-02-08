@@ -17,7 +17,7 @@ include(${CPM_DOWNLOAD_LOCATION})
 CPMAddPackage(
         NAME IODash
         GITHUB_REPOSITORY YukiWorkshop/IODash
-        VERSION 0.1.4
+        VERSION 0.1.5
 )
 
 CPMAddPackage(
