@@ -185,8 +185,3 @@ Context::~Context() {
 	wait_app_terminate();
 }
 
-
-
-
-
-

@@ -17,7 +17,7 @@ include(${CPM_DOWNLOAD_LOCATION})
 CPMAddPackage(
         NAME IODash
         GITHUB_REPOSITORY YukiWorkshop/IODash
-        VERSION 0.1.5
+        VERSION 0.1.6
 )
 
 CPMAddPackage(
@@ -50,7 +50,7 @@ CPMAddPackage(
 CPMAddPackage(
         NAME cpp-base64X
         GITHUB_REPOSITORY YukiWorkshop/cpp-base64X
-        VERSION 0.0.1
+        VERSION 0.0.2
 )
 
 set(SOURCE_FILES
