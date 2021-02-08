@@ -1,124 +1,137 @@
 /*
     This file is part of Marisa.
-    Copyright (C) 2018-2019 ReimuNotMoe
+    Copyright (C) 2015-2021 ReimuNotMoe <reimu@sudomaker.com>
 
     This program is free software: you can redistribute it and/or modify
-    it under the terms of the GNU Lesser General Public License as
-    published by the Free Software Foundation, either version 3 of the
-    License, or (at your option) any later version.
+    it under the terms of the MIT License.
 
     This program is distributed in the hope that it will be useful,
     but WITHOUT ANY WARRANTY; without even the implied warranty of
-    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-    GNU Lesser General Public License for more details.
-
-    You should have received a copy of the GNU Lesser General Public License
-    along with this program.  If not, see <https://www.gnu.org/licenses/>.
+    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
 */
 
 #pragma once
 
-#include <vector>
-#include <memory>
-#include <regex>
-
-#include <boost/asio.hpp>
-#include <boost/asio/ssl.hpp>
-
-#include "../Server/Instance.hpp"
-#include "../Protocol/HTTP/HTTP.hpp"
-#include "Middleware.hpp"
+#include "../CommonIncludes.hpp"
+#include "../Util/Util.hpp"
+#include "../Version.hpp"
+#include "Context.hpp"
 #include "Route.hpp"
 
+using namespace IODash;
+
 namespace Marisa {
-	namespace Server {
-		class InstanceTCP;
-		class InstanceSSL;
-		class InstanceUnix;
-	}
+	class Route;
 
-	namespace Application {
-		class Route;
-		class Middleware_RawIO;
+	class App {
+	public:
+		struct Config {
+			struct http {
+				size_t max_header_size = 10 * 1024;
+				size_t max_post_size = 128 * 1024;
+				uint16_t max_requests_per_conn = 65535;
 
-		class App {
-		protected:
-			std::vector<std::pair<std::regex, std::shared_ptr<Route>>> route_mapping;
+			} http;
 
-			std::shared_ptr<Route> route_global;
+			struct logging {
+				struct internal {
+					spdlog::level::level_enum level = spdlog::level::debug;
+					std::string pattern = "%Y-%m-%d %T.%f %z [%^%l%$] %v";
+					bool stdout_enabled = true;
+					std::string file;
+				} internal;
 
-			std::vector<std::unique_ptr<Server::InstanceTCP>> tcp_servers;
-			std::vector<std::unique_ptr<Server::InstanceSSL>> ssl_servers;
-			std::vector<std::unique_ptr<Server::InstanceUnix>> unix_servers;
+				struct access {
+					spdlog::level::level_enum level = spdlog::level::debug;
+					std::string pattern = "%Y-%m-%d %T.%f %z [%^%l%$] %v";
+					bool stdout_enabled = true;
+					std::string file;
+				} access;
+			} logging;
 
-			std::vector<std::thread> runners;
+			struct connection {
+				uint16_t timeout_seconds = 60;
+			} connection;
 
-			void init_seq_routemap();
+			struct app {
+				bool catch_unhandled_exception = true;
+			} app;
+		} config;
 
-			// unsigned int app_threads = 1; // No suitable thread pool found so far
-			size_t nr_io_threads = 1;
+		std::unique_ptr<spdlog::logger> logger_internal;
+		std::unique_ptr<spdlog::logger> logger_access;
+	protected:
+		int mhd_flags = MHD_ALLOW_SUSPEND_RESUME | MHD_USE_AUTO_INTERNAL_THREAD | MHD_ALLOW_UPGRADE | MHD_USE_ERROR_LOG | MHD_USE_DEBUG;
 
-			uint32_t flags = 0;
-			std::unique_ptr<Middleware_RawIO> raw_mw = nullptr;
+		int mhd_extra_flags[8] = {MHD_OPTION_END};
+		void *mhd_extra_flag_values[8];
 
-			void run_io(size_t __threads);
-		public:
-			struct config {
-				struct http {
-					size_t max_header_size = 10 * 1024;
-					uint16_t max_requests_per_conn = 65535;
-				} http;
+		std::string https_cert, https_key, https_trust, https_key_passwd;
 
-				struct connection {
-					uint16_t timeout_seconds = 60;
-				} connection;
+		struct MHD_Daemon *mhd_daemon = nullptr;
+		SocketAddress<AddressFamily::Any> listen_addr;
 
-				struct app {
-					bool catch_unhandled_exception = true;
-				} app;
+		threadpool11::pool app_thread_pool_;
 
-				struct global_callbacks {
-					std::function<void()> pre_iosvc_run;
-				} global_callbacks;
+		std::shared_ptr<spdlog::sinks::stdout_color_sink_mt> spdlog_internal_sink_stdout;
+		std::shared_ptr<spdlog::sinks::daily_file_sink_mt> spdlog_internal_sink_file;
 
-			} config;
+		std::shared_ptr<spdlog::sinks::stdout_color_sink_mt> spdlog_access_sink_stdout;
+		std::shared_ptr<spdlog::sinks::daily_file_sink_mt> spdlog_access_sink_file;
 
-			App() = default;
+		std::vector<std::pair<std::regex, std::shared_ptr<Route>>> route_mapping;
+		std::shared_ptr<Route> route_global_;
 
-			void listen(uint16_t __port, size_t __instances = 1); // HTTP
-			void listen(const std::string &__address, uint16_t __port, size_t __instances = 1);
+	protected:
+		void init();
+		void init_logger();
+	protected:
+		int mhd_flagslot_unused(int flag = MHD_OPTION_END);
 
-			void listen_ssl(uint16_t __port, void (*__ssl_setup)(boost::asio::ssl::context &), size_t __instances = 1);
-			void listen_ssl(const std::string &__address, uint16_t __port, void (*__ssl_setup)(boost::asio::ssl::context &), size_t __instances = 1);
+		void mhd_flagslot_set(int flag, void *val);
 
-			void listen_unix(const std::string &__path); // Unix
+		static int mhd_connection_handler(void *cls, struct MHD_Connection *connection, const char *url, const char *method, const char *version, const char *upload_data,
+						  size_t *upload_data_size, void **con_cls);
+		static void mhd_request_completed(void *cls, struct MHD_Connection *connection, void **con_cls, enum MHD_RequestTerminationCode toe);
 
-			Route &route(const std::string &__route);
-			Route &route(std::regex __route_regex);
+		static ssize_t mhd_streamed_response_reader(void *cls, uint64_t pos, char *buf, size_t max);
+		static void mhd_streamed_response_read_done(void *cls);
+	public:
+		App();
+		App(App::Config cfg);
 
-			void use_raw(const Middleware_RawIO& __ref_mw, bool __async=false);
+		static void ignore_sigpipe();
 
-			void run(size_t __threads_per_io_service = 1);
-			void stop();
+		void listen(uint16_t __port, bool ipv6_enabled = 1);
+		void listen_v4(const std::string &__address, uint16_t __port);
+		void listen_v6(const std::string &__address, uint16_t __port);
 
-			const std::vector<std::pair<std::regex, std::shared_ptr<Route>>>& get_routes() {
-				return route_mapping;
-			}
+		void set_https_cert(const std::string& str);
+		void set_https_cert_file(const std::string& path);
+		void set_https_key(const std::string& str);
+		void set_https_key_file(const std::string& path);
+		void set_https_key_passwd(const std::string& str);
+		void set_https_trust(const std::string& str);
+		void set_https_trust_file(const std::string& path);
 
-			const std::shared_ptr<Route>& get_route_global() {
-				return route_global;
-			}
-		};
+		Route &route(const std::string &__route);
+		Route &route(std::regex __route_regex);
 
-		class AppExposed : public App {
-		public:
-			using App::route_global;
-			using App::route_mapping;
 
-			using App::flags;
-			using App::raw_mw;
-//			using App::io_threads;
-//			using App::app_threads;
-		};
-	}
+		void start(ssize_t io_thread_count = -1);
+
+		void stop();
+
+		std::vector<std::pair<std::regex, std::shared_ptr<Route>>>& routes() noexcept {
+			return route_mapping;
+		}
+
+		std::shared_ptr<Route>& route_global() noexcept {
+			return route_global_;
+		}
+
+		threadpool11::pool& app_thread_pool() noexcept {
+			return app_thread_pool_;
+		}
+	};
 }

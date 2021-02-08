@@ -1,128 +1,119 @@
 /*
     This file is part of Marisa.
-    Copyright (C) 2018-2019 ReimuNotMoe
+    Copyright (C) 2015-2021 ReimuNotMoe <reimu@sudomaker.com>
 
     This program is free software: you can redistribute it and/or modify
-    it under the terms of the GNU Lesser General Public License as
-    published by the Free Software Foundation, either version 3 of the
-    License, or (at your option) any later version.
+    it under the terms of the MIT License.
 
     This program is distributed in the hope that it will be useful,
     but WITHOUT ANY WARRANTY; without even the implied warranty of
-    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-    GNU Lesser General Public License for more details.
-
-    You should have received a copy of the GNU Lesser General Public License
-    along with this program.  If not, see <https://www.gnu.org/licenses/>.
+    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
 */
 
 #pragma once
 
-#define BOOST_COROUTINES_NO_DEPRECATION_WARNING
-#include <boost/asio.hpp>
-#include <boost/asio/spawn.hpp>
-#include <boost/asio/ssl.hpp>
+#include "../CommonIncludes.hpp"
 
 #include "App.hpp"
-#include "Response/Response.hpp"
-#include "Request/Request.hpp"
-#include "../Protocol/HTTP/HTTP.hpp"
-#include "../Protocol/HTTP/HTTP1/HTTP1.hpp"
-
-using namespace Marisa::Protocol;
+#include "Response.hpp"
+#include "Request.hpp"
 
 namespace Marisa {
-	namespace Server {
-		class Session;
-	}
 
-	namespace Application {
-		class App;
-		class AppExposed;
-		class Route;
-		class RouteExposed;
-		class Middleware;
+	class App;
 
-		namespace Response {
-			class ResponseContext;
-		}
+	class Route;
+	class RouteExposed;
+	class Middleware;
 
-		namespace Request {
-			class RequestContext;
-		}
 
-		class Context {
-		public:
-			enum {
-				// IO states: 0x0000 - 0x00ff
-				STATE_WANT_READ = 0x1, STATE_WANT_WRITE = 0x2,
-				STATE_IO_ERROR = 0x4, STATE_THREAD_RUNNING = 0x8,
+	class Response;
 
-				// Flags: 0x0100 - 0xff00
-				FLAG_NOT_STREAMED = 0x0100, FLAG_ASYNC = 0x0200, FLAG_KEEPALIVE = 0x0400,
-				FLAG_COMP_GZIP = 0x1000, FLAG_COMP_DEFLATE = 0x2000
-			};
 
-			struct HandlerData {
-				size_t pos_cur_handler = 0;
-				std::vector<std::unique_ptr<Middleware>> &middleware_list;
+	class Request;
+	class RequestExposed;
 
-				explicit HandlerData(std::vector<std::unique_ptr<Middleware>> &__ref_mw_list) : middleware_list(__ref_mw_list) {};
-			};
 
-		protected:
-			Application::AppExposed &app;
-			Server::Session *session = nullptr;
+	class Context {
+	public:
 
-			std::unique_ptr<HTTP::Parser> http_parser;
-			std::unique_ptr<HTTP::Generator> http_generator;
+		App *app = nullptr;
+		RouteExposed *route = nullptr;
 
-			uint16_t state = 0;
-			std::shared_ptr<RouteExposed> route;
-			std::unique_ptr<HandlerData> handlers;
+		spdlog::logger *logger = nullptr;
 
-			std::thread container;
+		struct MHD_Connection *mhd_conn = nullptr;
+		bool conn_suspended = false;
+		std::mutex conn_state_lock;
+		std::condition_variable conn_state_cv;
 
-			static void container_thread(Context *__ctx, void *__session_sptr);
+		size_t processed_post_size = 0;
 
-			bool init_handler_data();
-			bool determine_hp_state();
-			void run_handler();
-			void run_raw_handler();
-			void process_request_data(uint8_t *__buf, size_t __len);
-			void use_default_status_page(const HTTP::Status &__status);
+		bool app_started = false;
 
-		public:
-			explicit Context(Application::AppExposed &__ref_app, boost::asio::io_service& __io_svc, boost::asio::io_service::strand& __io_strand);
+		size_t current_middleware = 0;
 
-			std::unique_ptr<Request::RequestContext> request;
-			std::unique_ptr<Response::ResponseContext> response;
+		std::future<void> app_future;
+//		std::thread app_thread;
 
-			boost::asio::io_service& io_service;
-			boost::asio::io_service::strand& io_strand;
-			boost::asio::yield_context *yield_context = nullptr;
 
-			void next();
-		};
+//		ssize_t output_buffer_pos = 0;
+//		std::vector<uint8_t> output_buffer;
+//		std::mutex output_buffer_lock;
+//		std::condition_variable output_buffer_clearance;
+//
+//		void output_buffer_put(const void *buf, size_t len) {
+//			std::unique_lock<std::mutex> lg(output_buffer_lock);
+//			output_buffer.resize(len);
+//			memcpy(output_buffer.data(), buf, len);
+//
+//			output_buffer_clearance.wait(lg);
+//		}
+//
+//		size_t output_buffer_get(const void *buf, size_t len) {
+//			std::unique_lock<std::mutex> lg(output_buffer_lock);
+//			output_buffer.resize(len);
+//			memcpy(output_buffer.data(), buf, len);
+//
+//			output_buffer_clearance.wait(lg);
+//		}
+//
+//		void output_buffer_clear() {
+//			{
+//				std::lock_guard<std::mutex> lg(output_buffer_lock);
+//				output_buffer_pos = 0;
+//				output_buffer.clear();
+//			}
+//
+//			output_buffer_clearance.notify_one();
+//		}
 
-		class ContextExposed : public Context {
-		public:
-			using Context::http_parser;
-			using Context::http_generator;
+		bool streamed();
 
-			using Context::session;
+		void suspend_connection();
+		void resume_connection();
 
-			using Context::route;
-			using Context::handlers;
-			using Context::state;
+		bool match_route();
 
-			using Context::container_thread;
-			using Context::process_request_data;
-			using Context::run_raw_handler;
+		void app_container();
 
-			explicit ContextExposed(AppExposed &__ref_app, boost::asio::io_service& __io_svc, boost::asio::io_service::strand& __io_strand) : Context(__ref_app, __io_svc, __io_strand) {};
 
-		};
-	}
+		void start_app();
+		void wait_app_terminate();
+
+		void process_request();
+		void use_default_status_page(int __status);
+
+	public:
+		explicit Context(App *__app, struct MHD_Connection *__mhd_conn, const char *__mhd_url, const char *__mhd_method, const char *__mhd_version);
+
+		~Context();
+
+		Request request;
+		Response response;
+
+		void next();
+	};
+
 
 }

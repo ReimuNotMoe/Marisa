@@ -12,14 +12,4 @@
 
 #pragma once
 
-#include "CommonIncludes.hpp"
-
-namespace Marisa::Middlewares {
-	class Websocket : public Middleware {
-	MARISA_MIDDLEWARE_USE_DEFAULT_CLONE
-
-	public:
-
-		void handler() override;
-	};
-}
+#define MARISA_VERSION		"2.0.0"

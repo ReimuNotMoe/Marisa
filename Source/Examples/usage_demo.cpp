@@ -1,31 +1,25 @@
 /*
     This file is part of Marisa.
-    Copyright (C) 2018-2019 ReimuNotMoe
+    Copyright (C) 2015-2021 ReimuNotMoe <reimu@sudomaker.com>
 
     This program is free software: you can redistribute it and/or modify
-    it under the terms of the GNU Lesser General Public License as
-    published by the Free Software Foundation, either version 3 of the
-    License, or (at your option) any later version.
+    it under the terms of the MIT License.
 
     This program is distributed in the hope that it will be useful,
     but WITHOUT ANY WARRANTY; without even the implied warranty of
-    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-    GNU Lesser General Public License for more details.
-
-    You should have received a copy of the GNU Lesser General Public License
-    along with this program.  If not, see <https://www.gnu.org/licenses/>.
+    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
 */
 
 #include "../Marisa.hpp"
 
-#include <sstream>
 #include <iostream>
 
-using namespace Marisa::Application;
+using namespace Marisa;
 using namespace Middlewares;
-
+using namespace Util;
 
 class usage_demo : public Middleware {
+MARISA_MIDDLEWARE_USE_DEFAULT_CLONE
 public:
 	std::string str;
 
@@ -40,16 +34,12 @@ public:
 		   << "<title>" << str << "</title>\n"
 		   << "</head>";
 
-
-
 		ss << "<body>"
 		   << "<h1>Hello world!</h1>"
 		   << "<hr>"
-		   << "URL: " << request->url << "<br>"
-		   << "Method: " << request->method.to_string() << "<br>"
-		   << "Your IP address: " << request->ip() << "<br>"
-		   << "Your socket IP address: " << request->socket.remote_endpoint().address().to_string() << "<br>"
-		   << "Your port: " << request->socket.remote_endpoint().port() << "<br><br>";
+		   << "URL: " << request->url() << "<br>"
+		   << "Method: " << request->method() << "<br>"
+		   << "Socket address: " << request->socket_address().to_string() << "<br><br>";
 
 
 		ss  << "Headers:<br>"
@@ -60,7 +50,7 @@ public:
 		       "</tr>";
 
 
-		for (auto &it : request->headers) {
+		for (auto &it : request->header()) {
 			ss << "<tr>";
 			ss << "<td>" << it.first << "</td>";
 			ss << "<td>" << it.second << "</td>";
@@ -80,7 +70,7 @@ public:
 		       "</tr>";
 
 
-		for (auto &it : request->cookies()) {
+		for (auto &it : request->cookie()) {
 			ss << "<tr>";
 			ss << "<td>" << it.first << "</td>";
 			ss << "<td>" << it.second << "</td>";
@@ -92,18 +82,18 @@ public:
 
 		ss << "<br><br>";
 
-		ss  << "URL smatches:<br>"
+		ss  << "URL matched capture groups:<br>"
 		    << "<table style=\"width:100%\" border=\"3\">"
 		       "<tr>"
-		       "<th>Key</th>"
+		       "<th>Index</th>"
 		       "<th>Value</th>"
 		       "</tr>";
 
 
 		size_t i=0;
-		for (auto &it : request->url_smatch) {
+		for (auto &it : request->url_matched_capture_groups()) {
 			ss << "<tr>";
-			ss << "<td>" << "url_smatch[" << i << "]" << "</td>";
+			ss << "<td>" << i << "</td>";
 			ss << "<td>" << it << "</td>";
 			ss << "</tr>";
 			i++;
@@ -126,35 +116,30 @@ public:
 
 		ss << "<br><br>";
 
-		ss << "base64 encode/decode tests:" << "<br>";
-		ss << "<code>";
-		ss << "Base64::Encoder::encode_once(\"The quick brown fox jumps over the lazy dog\") = \"" << Base64::Encoder::encode_once("The quick brown fox jumps over the lazy dog") << "\"<br>";
-		ss << "Base64::Decoder::decode_once(\"VGhlIHF1aWNrIGJyb3duIGZveCBqdW1wcyBvdmVyIHRoZSBsYXp5IGRvZw\") = \"" << Base64::Decoder::decode_once("VGhlIHF1aWNrIGJyb3duIGZveCBqdW1wcyBvdmVyIHRoZSBsYXp5IGRvZw") << "\"<br>";
-		ss << "</code>";
+//		ss << "base64 encode/decode tests:" << "<br>";
+//		ss << "<code>";
+//		ss << "Base64::Encoder::encode_once(\"The quick brown fox jumps over the lazy dog\") = \"" << Base64::Encoder::encode_once("The quick brown fox jumps over the lazy dog") << "\"<br>";
+//		ss << "Base64::Decoder::decode_once(\"VGhlIHF1aWNrIGJyb3duIGZveCBqdW1wcyBvdmVyIHRoZSBsYXp5IGRvZw\") = \"" << Base64::Decoder::decode_once("VGhlIHF1aWNrIGJyb3duIGZveCBqdW1wcyBvdmVyIHRoZSBsYXp5IGRvZw") << "\"<br>";
+//		ss << "</code>";
 
-		ss << "<hr>Marisa/" << Marisa::Version << "\n";
+		ss << "<hr>Marisa/" << MARISA_VERSION << "\n";
 		ss << "</body></html>";
 
 		response->send(std::move(ss.str()));
 //		response->end();
 	}
-
-
-	std::unique_ptr<Middleware> New() const override {
-		return std::make_unique<usage_demo>(str);
-	}
-
 };
 
 
 int main() {
 	App myapp;
 
-	myapp.route("*").on("GET").use(Compression()).use(usage_demo("Usage demo"));
-
-	auto &route = myapp.route("/*");
-	route.on("GET").use(Compression()).use(usage_demo("Usage dem0"));
+	myapp.route("/**").use(usage_demo("Usage demo"));
 
 	myapp.listen(8080);
-	myapp.run();
+	myapp.start();
+
+	while (1) {
+		sleep(-1);
+	}
 }

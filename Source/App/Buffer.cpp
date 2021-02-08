@@ -10,16 +10,7 @@
     MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
 */
 
-#pragma once
+#include "Buffer.hpp"
 
-#include "CommonIncludes.hpp"
+using namespace Marisa;
 
-namespace Marisa::Middlewares {
-	class Websocket : public Middleware {
-	MARISA_MIDDLEWARE_USE_DEFAULT_CLONE
-
-	public:
-
-		void handler() override;
-	};
-}

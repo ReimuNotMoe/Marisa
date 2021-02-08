@@ -1,20 +1,16 @@
 /*
     This file is part of Marisa.
-    Copyright (C) 2018-2019 ReimuNotMoe
+    Copyright (C) 2015-2021 ReimuNotMoe <reimu@sudomaker.com>
 
     This program is free software: you can redistribute it and/or modify
-    it under the terms of the GNU Lesser General Public License as
-    published by the Free Software Foundation, either version 3 of the
-    License, or (at your option) any later version.
+    it under the terms of the MIT License.
 
     This program is distributed in the hope that it will be useful,
     but WITHOUT ANY WARRANTY; without even the implied warranty of
-    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-    GNU Lesser General Public License for more details.
-
-    You should have received a copy of the GNU Lesser General Public License
-    along with this program.  If not, see <https://www.gnu.org/licenses/>.
+    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
 */
+
+// TODO
 
 #include "../Marisa.hpp"
 
@@ -54,7 +50,7 @@ public:
 			       "</tr>";
 
 
-			for (auto &it : request->headers) {
+			for (auto &it : request->header) {
 				ss << "<tr>";
 				ss << "<td>" << it.first << "</td>";
 				ss << "<td>" << it.second << "</td>";
@@ -226,18 +222,18 @@ int main() {
 		rsp->send("Hello Marisa");
 	}));
 
-	myapp.route("/async_lambda_send").async().on("GET").use(Lambda([&](auto req, auto rsp, auto ctx){
+	myapp.route("/async_lambda_send").nonblocking().on("GET").use(Lambda([&](auto req, auto rsp, auto ctx){
 		rsp->send(vec);
 	}));
 
-	myapp.route("/async_lambda_write").async().on("GET").use(Lambda([&](auto req, auto rsp, auto ctx){
+	myapp.route("/async_lambda_write").nonblocking().on("GET").use(Lambda([&](auto req, auto rsp, auto ctx){
 		rsp->write("Hello Marisa\n");
 		rsp->write(vec);
 		rsp->write(static_arr, static_arr+sizeof(static_arr)-1);
 		rsp->end();
 	}));
 
-	myapp.route("/async_lambda_post").async().on("POST").use(Lambda([](auto req, auto rsp, auto ctx){
+	myapp.route("/async_lambda_post").nonblocking().on("POST").use(Lambda([](auto req, auto rsp, auto ctx){
 		rsp->write("Hello Marisa! Post data:");
 		auto d = req->body();
 		rsp->write(d.data(), d.size());
@@ -256,7 +252,7 @@ int main() {
 		throw std::invalid_argument("what's up doc");
 	}));
 
-	myapp.route("/async_error_catcher").async().on("*").use(Lambda([](auto req, auto rsp, auto ctx){
+	myapp.route("/async_error_catcher").nonblocking().on("*").use(Lambda([](auto req, auto rsp, auto ctx){
 		rsp->send("Hello Marisa");
 		throw std::invalid_argument("what's up doc");
 	}));
@@ -266,12 +262,12 @@ int main() {
 		throw std::invalid_argument("what's up doc");
 	}));
 
-	myapp.route("/sendfile").async().on("GET").use(Lambda([](auto req, auto rsp, auto ctx){
+	myapp.route("/sendfile").nonblocking().on("GET").use(Lambda([](auto req, auto rsp, auto ctx){
 		rsp->type = "text/plain";
 		rsp->send_file("/etc/profile");
 	}));
 
-	myapp.route("/async_sendfile").async().on("GET").use(Lambda([](auto req, auto rsp, auto ctx){
+	myapp.route("/async_sendfile").nonblocking().on("GET").use(Lambda([](auto req, auto rsp, auto ctx){
 		rsp->type = "text/plain";
 		rsp->send_file("/etc/profile");
 	}));
@@ -285,11 +281,11 @@ int main() {
 
 
 	myapp.route("/blocking_streamed_fileupload").stream().on("POST").use(file_upload());
-	myapp.route("/async_streamed_fileupload").async().stream().on("POST").use(file_upload());
+	myapp.route("/async_streamed_fileupload").nonblocking().stream().on("POST").use(file_upload());
 
 	myapp.route(std::regex("^whatever")).no_yield().on("GET").use(Simple("whatever!!"));
 
-	myapp.config.connection.timeout_seconds = 15;
+	myapp.Config.connection.timeout_seconds = 15;
 	myapp.listen(46878);
 	myapp.listen("127.0.0.1", 47000);
 	myapp.listen_ssl(46879, [](auto& ssl_ctx){

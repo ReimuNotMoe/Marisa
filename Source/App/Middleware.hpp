@@ -1,80 +1,43 @@
 /*
     This file is part of Marisa.
-    Copyright (C) 2018-2019 ReimuNotMoe
+    Copyright (C) 2015-2021 ReimuNotMoe <reimu@sudomaker.com>
 
     This program is free software: you can redistribute it and/or modify
-    it under the terms of the GNU Lesser General Public License as
-    published by the Free Software Foundation, either version 3 of the
-    License, or (at your option) any later version.
+    it under the terms of the MIT License.
 
     This program is distributed in the hope that it will be useful,
     but WITHOUT ANY WARRANTY; without even the implied warranty of
-    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-    GNU Lesser General Public License for more details.
-
-    You should have received a copy of the GNU Lesser General Public License
-    along with this program.  If not, see <https://www.gnu.org/licenses/>.
+    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
 */
 
 #pragma once
 
-#include "Context.hpp"
-#include "../Log/Log.hpp"
-#include "Request/Request.hpp"
-#include "Response/Response.hpp"
+#include "../CommonIncludes.hpp"
 
-using namespace Marisa::Log;
+#include "Context.hpp"
+#include "Request.hpp"
+#include "Response.hpp"
+
+#define MARISA_MIDDLEWARE_USE_DEFAULT_CLONE		public: std::unique_ptr<Middleware> clone() const override {return std::make_unique<std::decay_t<decltype(*this)>>(*this);}
 
 namespace Marisa {
-	namespace Application {
-		class ContextExposed;
+	class Context;
 
-		class Middleware_RawIO {
-		public:
-			ContextExposed *context = nullptr;
-			Server::Session *session = nullptr;
-			boost::asio::yield_context *yield_context = nullptr;
+	class Middleware {
+	public:
+		Context *context = nullptr;
+		Request *request = nullptr;
+		Response *response = nullptr;
 
-			void __load_context(ContextExposed *__context) noexcept;
+		void __load_context(Context *__context) noexcept;
 
-			virtual void handler();
+		void next();
 
-			virtual std::unique_ptr<Middleware_RawIO> New() const;
+		virtual void handler() = 0;
 
-			virtual ~Middleware_RawIO();
-		};
+		virtual std::unique_ptr<Middleware> clone() const = 0;
 
-		class Middleware {
-		public:
-			ContextExposed *context = nullptr;
-			Request::RequestContext *request = nullptr;
-			Response::ResponseContext *response = nullptr;
+		virtual ~Middleware() = default;
+	};
 
-			void __load_context(ContextExposed *__context) noexcept;
-
-			void next();
-
-			static std::string encodeURI(const std::string_view& __str) {
-				return Protocol::HTTP::Parser::encodeURI(__str);
-			}
-
-			static std::string encodeURIComponent(const std::string_view& __str) {
-				return Protocol::HTTP::Parser::encodeURIComponent(__str);
-			}
-
-			static std::string decodeURI(const std::string_view& __str) {
-				return Protocol::HTTP::Parser::decodeURI(__str);
-			}
-
-			static std::string decodeURIComponent(const std::string_view& __str) {
-				return Protocol::HTTP::Parser::decodeURIComponent(__str);
-			}
-
-			virtual void handler();
-
-			virtual std::unique_ptr<Middleware> New() const;
-
-			virtual ~Middleware();
-		};
-	}
 }

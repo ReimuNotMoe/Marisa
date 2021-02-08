@@ -16,23 +16,20 @@
     along with this program.  If not, see <https://www.gnu.org/licenses/>.
 */
 
-#pragma once
+#include "../Marisa.hpp"
 
-#include "CommonIncludes.hpp"
+using namespace Marisa;
+using namespace Marisa::Middlewares;
 
-namespace Marisa::Middlewares {
-	class Lambda : public Middleware {
-	MARISA_MIDDLEWARE_USE_DEFAULT_CLONE
-	public:
+int main() {
+	App myapp;
 
-		std::shared_ptr<std::function<void(Request *, Response *, Context *)>> func;
+	myapp.route("/").use(Dashboard());
 
-		explicit Lambda(std::function<void(Request *, Response *, Context *)> __func) {
-			func = std::make_shared<std::function<void(Request *, Response *, Context *)>>(std::move(__func));
-		}
+	myapp.listen(8080);
+	myapp.start();
 
-		void handler() override {
-			(*func)(request, response, context);
-		}
-	};
+	while (1) {
+		sleep(-1);
+	}
 }

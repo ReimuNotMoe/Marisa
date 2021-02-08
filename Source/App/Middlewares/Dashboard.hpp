@@ -13,13 +13,13 @@
 #pragma once
 
 #include "CommonIncludes.hpp"
+#include "../../Version.hpp"
 
 namespace Marisa::Middlewares {
-	class Websocket : public Middleware {
+	class Dashboard : public Middleware {
 	MARISA_MIDDLEWARE_USE_DEFAULT_CLONE
 
 	public:
-
 		void handler() override;
 	};
 }

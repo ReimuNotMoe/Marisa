@@ -1,110 +1,127 @@
-cmake_minimum_required(VERSION 3.4)
+cmake_minimum_required(VERSION 3.14)
 project(marisa)
 ENABLE_TESTING()
 
 set(CMAKE_CXX_STANDARD 17)
 
+set(CPM_DOWNLOAD_VERSION 0.27.5)
+set(CPM_DOWNLOAD_LOCATION "${CMAKE_BINARY_DIR}/cmake/CPM_${CPM_DOWNLOAD_VERSION}.cmake")
+
+if(NOT (EXISTS ${CPM_DOWNLOAD_LOCATION}))
+    message(STATUS "Downloading CPM.cmake")
+    file(DOWNLOAD https://github.com/TheLartians/CPM.cmake/releases/download/v${CPM_DOWNLOAD_VERSION}/CPM.cmake ${CPM_DOWNLOAD_LOCATION})
+endif()
+
+include(${CPM_DOWNLOAD_LOCATION})
+
+CPMAddPackage(
+        NAME IODash
+        GITHUB_REPOSITORY YukiWorkshop/IODash
+        VERSION 0.1.4
+)
+
+CPMAddPackage(
+        NAME ReGlob
+        GITHUB_REPOSITORY SudoMaker/ReGlob
+        VERSION 0.0.4
+)
+
+CPMAddPackage(
+        NAME threadpool11
+        GITHUB_REPOSITORY tghosgor/threadpool11
+        VERSION 3.0.0
+        GIT_TAG 39fcc1fc51671989d4f3c02903f9d39c6323b685
+        DOWNLOAD_ONLY YES
+)
+
+CPMAddPackage(
+        NAME fmt
+        GITHUB_REPOSITORY fmtlib/fmt
+        VERSION 7.1.3
+        GIT_TAG 7bdf0628b1276379886c7f6dda2cef2b3b374f0b
+)
+
+CPMAddPackage(
+        NAME spdlog
+        GITHUB_REPOSITORY gabime/spdlog
+        VERSION 1.8.2
+)
+
+CPMAddPackage(
+        NAME cpp-base64X
+        GITHUB_REPOSITORY YukiWorkshop/cpp-base64X
+        VERSION 0.0.1
+)
+
 set(SOURCE_FILES
 
-        Marisa.hpp Marisa.cpp
+        Marisa.hpp Version.hpp
 
-        Server/Instance.hpp Server/InstanceCommon.cpp
-        Server/InstanceTCP.cpp Server/InstanceSSL.cpp Server/InstanceUnix.cpp
+        CommonIncludes.hpp
 
-        Server/Session.hpp Server/SessionCommon.cpp
-        Server/SessionTCP.cpp Server/SessionSSL.cpp Server/SessionUnix.cpp
-
-        Server/ConnectionContext.hpp
-        Server/Config.cpp Server/Config.hpp Server/Buffer.cpp Server/Buffer.hpp
-
+        App/Buffer.cpp App/Buffer.hpp
         App/App.cpp App/App.hpp App/Route.cpp App/Route.hpp App/Context.cpp App/Context.hpp
 
-        App/Request/Request.cpp App/Request/Request.hpp
-        App/Response/Response.hpp App/Response/Response.cpp
+        App/Request.cpp App/Request.hpp
+        App/Response.hpp App/Response.cpp
         App/Middleware.cpp App/Middleware.hpp
 
         App/Middlewares/Middlewares.hpp App/Middlewares/CommonIncludes.hpp
-        App/Middlewares/Compression.cpp App/Middlewares/Compression.hpp
         App/Middlewares/StaticFiles.cpp App/Middlewares/StaticFiles.hpp
         App/Middlewares/Redirection.cpp App/Middlewares/Redirection.hpp
         App/Middlewares/Simple.cpp App/Middlewares/Simple.hpp
         App/Middlewares/Lambda.cpp App/Middlewares/Lambda.hpp
         App/Middlewares/Websocket.cpp App/Middlewares/Websocket.hpp
 
-        Types/Date.cpp Types/Date.hpp
-        Types/MMap.cpp Types/MMap.hpp
-        Types/Mullet.cpp Types/Mullet.hpp
-        Types/Base64.cpp Types/Base64.hpp
+        Util/Util.cpp Util/Util.hpp
+        Util/MimeTypes.cpp Util/DefaultStatusPage.cpp Util/JSDate.cpp
 
-        Utilities/Utilities.cpp Utilities/Utilities.hpp
-        Utilities/MimeTypes.cpp
+        Util/URLEncode.cpp App/Middlewares/Dashboard.cpp App/Middlewares/Dashboard.hpp)
 
-        Log/Log.cpp Log/Log.hpp
+#include_directories(${IODash_SOURCE_DIR})
+include_directories(${fmt_SOURCE_DIR}/include)
+include_directories(${spdlog_SOURCE_DIR}/include)
+include_directories(${threadpool11_SOURCE_DIR}/threadpool11/include/threadpool11)
+include_directories(${cpp-base64X_SOURCE_DIR})
 
-
-        Protocol/Protocol.hpp
-
-        Protocol/HTTP/HTTP.hpp
-
-        Protocol/HTTP/CommonIncludes.hpp
-        Protocol/HTTP/Generator.hpp
-        Protocol/HTTP/Parser.cpp Protocol/HTTP/Parser.hpp
-        Protocol/HTTP/Method.cpp Protocol/HTTP/Method.hpp
-        Protocol/HTTP/Status.cpp Protocol/HTTP/Status.hpp
-
-        Protocol/HTTP/HTTP1/HTTP1.hpp
-
-        Protocol/HTTP/HTTP1/Parser.cpp Protocol/HTTP/HTTP1/Parser.hpp
-        Protocol/HTTP/HTTP1/Generator.cpp Protocol/HTTP/HTTP1/Generator.hpp
-
-        3rdParty/http-parser/http_parser.h 3rdParty/http-parser/http_parser.c
+add_library(threadpool11
+        ${threadpool11_SOURCE_DIR}/threadpool11/include/threadpool11/pool.hpp
+        ${threadpool11_SOURCE_DIR}/threadpool11/include/threadpool11/threadpool11.hpp
+        ${threadpool11_SOURCE_DIR}/threadpool11/include/threadpool11/work.hpp
+        ${threadpool11_SOURCE_DIR}/threadpool11/src/pool.cpp
         )
 
-include(GNUInstallDirs)
+target_include_directories(threadpool11 PUBLIC ${threadpool11_SOURCE_DIR}/threadpool11/include)
 
-configure_file(${CMAKE_CURRENT_SOURCE_DIR}/3rdParty/base64_default_config.h ${CMAKE_CURRENT_SOURCE_DIR}/3rdParty/base64/lib/config.h COPYONLY)
+if (CMAKE_COMPILER_IS_GNUCXX)
+    target_link_libraries(threadpool11 pthread)
+endif()
 
-set(SOURCE_FILES_BASE64
-        3rdParty/base64/lib/arch/avx2/codec.c 3rdParty/base64/lib/arch/generic/codec.c
-        3rdParty/base64/lib/arch/neon32/codec.c 3rdParty/base64/lib/arch/neon64/codec.c
-        3rdParty/base64/lib/arch/ssse3/codec.c 3rdParty/base64/lib/arch/sse41/codec.c
-        3rdParty/base64/lib/arch/sse42/codec.c 3rdParty/base64/lib/arch/avx/codec.c
-        3rdParty/base64/lib/lib.c 3rdParty/base64/lib/codec_choose.c)
-add_library(local_base64 STATIC ${SOURCE_FILES_BASE64})
-SET_TARGET_PROPERTIES(local_base64 PROPERTIES COMPILE_FLAGS "-fPIC ${CMAKE_CXX_FLAGS}")
-
-add_library(marisa SHARED ${SOURCE_FILES})
-add_library(marisa_static STATIC ${SOURCE_FILES})
-set_target_properties(marisa_static PROPERTIES OUTPUT_NAME marisa)
-target_link_libraries(marisa pthread boost_system boost_thread boost_coroutine z ssl crypto local_base64)
-target_link_libraries(marisa_static pthread boost_system boost_thread boost_coroutine z ssl crypto local_base64)
+add_library(marisa ${SOURCE_FILES})
 
 
-add_executable(test_Coverage Tests/coverage.cpp)
-target_link_libraries(test_Coverage marisa gcov)
+target_link_libraries(marisa pthread z ssl crypto fmt cpp-base64X IODash ReGlob microhttpd threadpool11)
 
-add_test(NAME Coverage COMMAND test_Coverage)
+
+#add_executable(test_Coverage Tests/coverage.cpp)
+#target_link_libraries(test_Coverage marisa gcov)
+#
+#add_test(NAME Coverage COMMAND test_Coverage)
 
 add_executable(example_Hello Examples/hello.cpp)
 target_link_libraries(example_Hello marisa)
 
-add_executable(example_HelloLambda Examples/hello_lambda.cpp)
-target_link_libraries(example_HelloLambda marisa)
-
-add_executable(example_HelloAsync Examples/hello_async.cpp)
-target_link_libraries(example_HelloAsync marisa)
-
-add_executable(example_HelloSimple Examples/hello_simple.cpp)
-target_link_libraries(example_HelloSimple marisa)
+add_executable(example_HelloStreamed Examples/hello_streamed.cpp)
+target_link_libraries(example_HelloStreamed marisa)
 
 add_executable(example_HelloSSL Examples/hello_ssl.cpp)
 target_link_libraries(example_HelloSSL marisa)
 
-add_executable(example_HelloUnixSocket Examples/hello_unix_socket.cpp)
-target_link_libraries(example_HelloUnixSocket marisa)
-
 add_executable(example_UsageDemo Examples/usage_demo.cpp)
 target_link_libraries(example_UsageDemo marisa)
+
+add_executable(example_Dashboard Examples/dashboard.cpp)
+target_link_libraries(example_Dashboard marisa)
 
 add_executable(example_SendSingleFile Examples/send_single_file.cpp)
 target_link_libraries(example_SendSingleFile marisa)
@@ -114,26 +131,3 @@ target_link_libraries(example_StaticFiles marisa)
 
 add_executable(example_StreamedPicUpload Examples/streamed_upload_pic.cpp)
 target_link_libraries(example_StreamedPicUpload marisa)
-
-add_executable(example_RawIO Examples/raw_io.cpp)
-target_link_libraries(example_RawIO marisa)
-
-install(TARGETS marisa
-        LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR})
-
-install(TARGETS marisa_static
-        DESTINATION ${CMAKE_INSTALL_LIBDIR})
-
-install(FILES Marisa.hpp DESTINATION "include/Marisa")
-install(DIRECTORY ${CMAKE_SOURCE_DIR}/App ${CMAKE_SOURCE_DIR}/Log ${CMAKE_SOURCE_DIR}/Protocol
-        ${CMAKE_SOURCE_DIR}/Server ${CMAKE_SOURCE_DIR}/Tests ${CMAKE_SOURCE_DIR}/Types ${CMAKE_SOURCE_DIR}/Utilities
-        DESTINATION "include/Marisa"
-        FILES_MATCHING
-        PATTERN "*.hpp"
-        )
-
-install(DIRECTORY ${CMAKE_SOURCE_DIR}/3rdParty
-        DESTINATION "include/Marisa"
-        FILES_MATCHING
-        PATTERN "*.h"
-        )

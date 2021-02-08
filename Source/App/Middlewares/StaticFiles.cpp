@@ -1,36 +1,46 @@
 /*
     This file is part of Marisa.
-    Copyright (C) 2018-2019 ReimuNotMoe
+    Copyright (C) 2015-2021 ReimuNotMoe <reimu@sudomaker.com>
 
     This program is free software: you can redistribute it and/or modify
-    it under the terms of the GNU Lesser General Public License as
-    published by the Free Software Foundation, either version 3 of the
-    License, or (at your option) any later version.
+    it under the terms of the MIT License.
 
     This program is distributed in the hope that it will be useful,
     but WITHOUT ANY WARRANTY; without even the implied warranty of
-    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-    GNU Lesser General Public License for more details.
-
-    You should have received a copy of the GNU Lesser General Public License
-    along with this program.  If not, see <https://www.gnu.org/licenses/>.
+    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
 */
 
 #include "StaticFiles.hpp"
 
 static const char ModuleName[] = "StaticFiles";
 
-void Middlewares::StaticFiles::handler() {
-	auto path = decodeURIComponent(request->url_smatch[path_smatch_pos]);
+using namespace Marisa;
+using namespace Middlewares;
+using namespace Util;
+
+void StaticFiles::handler() {
+	auto &smatches = request->url_matched_capture_groups();
+
+	if (smatches.size() < 2) {
+		context->logger->error("[{} @ {:x}] Incorrectly configured route. Please use `/path/**'.", ModuleName, (intptr_t)this);
+		response->status = 500;
+		response->send(default_status_page(response->status));
+		return;
+	}
+
+	auto path = decodeURIComponent(smatches[1]);
 
 	// Get rid of script kiddies
-	if (path.find("..") != path.npos) {
+	if (path.find("/../") != std::string::npos) {
 		response->status = 200;
 		response->send("You are a teapot");
 		return;
 	}
 
 	auto full_path = base_path + "/" + path;
+
+	context->logger->debug("[{} @ {:x}] full_path: {}", ModuleName, (intptr_t)this, full_path);
+
 
 	struct stat stat_buf;
 	if (stat(full_path.c_str(), &stat_buf)) {
@@ -42,7 +52,7 @@ void Middlewares::StaticFiles::handler() {
 			response->status = 500;
 		}
 
-		response->send(http_status_page(response->status));
+		response->send(default_status_page(response->status));
 		return;
 	}
 
@@ -53,7 +63,7 @@ void Middlewares::StaticFiles::handler() {
 			generate_file_page(dirp);
 		} else {
 			response->status = 403;
-			response->send(http_status_page(response->status));
+			response->send(default_status_page(response->status));
 		}
 
 		closedir(dirp);
@@ -66,32 +76,32 @@ void Middlewares::StaticFiles::handler() {
 			try {
 				auto dot_pos = path.find_last_of('.');
 				if (dot_pos == path.npos)
-					response->headers["Content-Type"] = "application/octet-stream";
+					response->header["Content-Type"] = "application/octet-stream";
 				else
-					response->headers["Content-Type"] = get_mime_type(path.substr(dot_pos+1));
+					response->header["Content-Type"] = mime_type(path.substr(dot_pos + 1));
 
 				response->send_file(full_path);
 				return;
 			} catch (std::system_error& e) {
-				LogE("%s[0x%016" PRIxPTR "]:\tsend_file error: %s\n", ModuleName, (uintptr_t)this, e.what());
+				context->logger->error("[{} @ {:x}] send_file error: {}", ModuleName, (intptr_t)this, e.what());
 				response->status = 500;
-				response->send(http_status_page(response->status));
+				response->send(default_status_page(response->status));
 				return;
 			}
 		} else {
 			response->status = 500;
 		}
-		response->send(http_status_page(response->status));
+		response->send(default_status_page(response->status));
 		return;
 	}
 }
 
-void Middlewares::StaticFiles::generate_file_page(DIR *__dirp) {
+void StaticFiles::generate_file_page(DIR *__dirp) {
 	errno = 0;
 
 	std::stringstream ss;
 
-	std::string title = "Index of " + request->url;
+	std::string title = "Index of " + request->url();
 
 	ss << "<!DOCTYPE HTML>"
 	      "<html>"
@@ -149,7 +159,7 @@ void Middlewares::StaticFiles::generate_file_page(DIR *__dirp) {
 		ss <<
 		   "</th>"
 		   "<th>";
-		ss << Date(&sbuf.st_mtim).toGoodString();
+		ss << JSDate(&sbuf.st_mtim).toGoodString();
 		ss << "</th>"
 		      "<th>";
 		ss << sbuf.st_size;
@@ -159,7 +169,7 @@ void Middlewares::StaticFiles::generate_file_page(DIR *__dirp) {
 	}
 
 	ss << "</table>"
-	      "<address>Marisa/0.0.1</address>"
+	      "<hr width=\"100%\"><address>Marisa/" MARISA_VERSION "</address>"
 	      "</body></html>";
 
 	response->send(std::move(ss.str()));

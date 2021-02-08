@@ -1,364 +1,188 @@
 /*
     This file is part of Marisa.
-    Copyright (C) 2018-2019 ReimuNotMoe
+    Copyright (C) 2015-2021 ReimuNotMoe <reimu@sudomaker.com>
 
     This program is free software: you can redistribute it and/or modify
-    it under the terms of the GNU Lesser General Public License as
-    published by the Free Software Foundation, either version 3 of the
-    License, or (at your option) any later version.
+    it under the terms of the MIT License.
 
     This program is distributed in the hope that it will be useful,
     but WITHOUT ANY WARRANTY; without even the implied warranty of
-    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-    GNU Lesser General Public License for more details.
-
-    You should have received a copy of the GNU Lesser General Public License
-    along with this program.  If not, see <https://www.gnu.org/licenses/>.
+    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
 */
 
 #include "Context.hpp"
 #include "App.hpp"
-#include "../Utilities/Utilities.hpp"
-#include "../Server/Session.hpp"
+#include "Middleware.hpp"
+#include "Response.hpp"
+#include "../Util/Util.hpp"
 
+using namespace Marisa;
 
-using namespace Marisa::Application;
-using namespace Marisa::Utilities;
-using namespace Marisa::Server;
+const char ModuleName[] = "Context";
 
-const char ModuleName[] = "AppContext";
+Context::Context(App *__app, struct MHD_Connection *__mhd_conn, const char *__mhd_url, const char *__mhd_method, const char *__mhd_version) :
+	app(__app), mhd_conn(__mhd_conn), request(this, __mhd_url, __mhd_method, __mhd_version), response(this) {
+	logger = app->logger_internal.get();
+	match_route();
+	static_cast<RequestExposed &>(request).init();
+	static_cast<ResponseExposed &>(response).init();
+}
 
-bool Context::determine_hp_state() {
-	if (state & FLAG_NOT_STREAMED)
-		return http_parser->finished();
+bool Context::streamed() {
+	if (route)
+		return route->mode_streamed;
 	else
-		return http_parser->headers_finished();
+		return false;
 }
 
-void Context::process_request_data(uint8_t *__buf, size_t __len) {
-#ifdef DEBUG
-	LogD("%s[0x%016" PRIxPTR "]:\tSpinning state machine\n", ModuleName, (uintptr_t)this);
-#endif
-
-	if (!determine_hp_state()) { // Parse operation in progress
-		auto &mhs = app.config.http.max_header_size;
-		if (mhs < session->total_read_size) {
-			LogW("%s[0x%016" PRIxPTR "]:\tHTTP header size exceeded: %zu/%zu\n", ModuleName, (uintptr_t) this, mhs, session->total_read_size);
-			return; // Return and teardown
+void Context::process_request() {
+	if (route) {
+		if (route->middlewares.empty()) {
+			logger->error("[{} @ {:x}] Route {}: Method defined but no middlewares", ModuleName, (intptr_t)this, (intptr_t)route);
+			use_default_status_page(500);
+			return;
+		} else {
+			return;
 		}
+	} else { // Route not matched, just send error page on event loop and tear down
+		logger->debug("[{} @ {:x}] Route not found", ModuleName, (intptr_t)this, (intptr_t)route);
 
+		use_default_status_page(404);
+		return; // Return and teardown
+	}
+}
+
+void Context::start_app() {
+	app_future = app->app_thread_pool().post_work<void>([this]{
+		app_container();
+	});
+
+	app_started = true;
+
+	logger->debug("[{} @ {:x}] work posted to thread pool", ModuleName, (intptr_t)this);
+
+//	app_thread = std::thread(&Context::app_container, this);
+//	app_thread.detach();
+}
+
+void Context::wait_app_terminate() {
+	if (app_started) {
+		app_future.get();
+		logger->debug("[{} @ {:x}] app work terminated", ModuleName, (intptr_t) this);
+	}
+}
+
+void Context::use_default_status_page(int __status) {
+	auto &page = Util::default_status_page(__status);
+	auto rsp = MHD_create_response_from_buffer(page.size(), (void *)page.c_str(), MHD_RESPMEM_PERSISTENT);
+	MHD_add_response_header(rsp, MHD_HTTP_HEADER_CONTENT_TYPE, "text/html");
+	MHD_queue_response(mhd_conn, __status, rsp);
+	MHD_destroy_response(rsp);
+}
+
+void Context::app_container() {
+	if (app->config.app.catch_unhandled_exception) {
 		try {
-			http_parser->parse((const char *) __buf, __len);
-		} catch (std::exception &e) { // HTTP parser exception, return HTTP 500
-			LogW("%s[0x%016" PRIxPTR "]:\tHTTP parse error: %s\n", ModuleName, (uintptr_t) this,
-			     e.what());
-			return; // Return and teardown
-		}
-
-#ifdef DEBUG
-		LogD("%s[0x%016" PRIxPTR "]:\tbody size: %zu\n", ModuleName, (uintptr_t) this, http_parser->body().size());
-#endif
-
-	}
-
-	if (!determine_hp_state()) { // Check again
-		state |= STATE_WANT_READ;
-		return; // Return and request more data
-	}
-
-	// Parse done
-	if (!route) {
-		auto &url = http_parser->url();
-		auto &rms = app.route_mapping;
-
-		auto it_h_conn = http_parser->headers_lowercase().find("connection");
-
-		if (it_h_conn != http_parser->headers_lowercase().end()) {
-			if (it_h_conn->second == "keep-alive") { // Check for 'Connection: keep-alive'
-#ifdef DEBUG
-				LogD("%s[0x%016" PRIxPTR "]:\tkeep-alive enabled\n", ModuleName, (uintptr_t) this);
-#endif
-				state |= FLAG_KEEPALIVE;
-				auto &kc = http_generator->keepalive_config;
-				kc[0] = app.config.connection.timeout_seconds;
-				kc[1] = app.config.http.max_requests_per_conn;
-			}
-		}
-
-		// Match URL with routes
-		std::smatch url_smatch; // Don't let this hell go out of scope
-		std::vector<std::string> smbuf;
-		for (auto &it : rms) {
-			if (std::regex_search(url, url_smatch, it.first)) {
-				size_t smpos = 0;
-				for (auto &its : url_smatch) {
-#ifdef DEBUG
-					LogD("%s[0x%016" PRIxPTR "]:\tsmatch[%zu]: %s\n", ModuleName, (uintptr_t) this,
-					     smpos, its.str().c_str());
-#endif
-					smbuf.push_back(its.str());
-					smpos++;
-				}
-				route = std::static_pointer_cast<RouteExposed>(it.second);
-			}
-		}
-
-		// Found single route
-		if (route) {
-#ifdef DEBUG
-			LogD("%s[0x%016" PRIxPTR "]:\tUsing route %p\n", ModuleName, (uintptr_t) this, route.get());
-#endif
-		} else { // Not found
-			if (app.route_global) { // Found global route
-				route = std::static_pointer_cast<RouteExposed>(app.route_global);
-#ifdef DEBUG
-				LogD("%s[0x%016" PRIxPTR "]:\tUsing global route at %p\n", ModuleName, (uintptr_t) this,
-				     route.get());
-#endif
-			} else { // Global route not defined, just send error page on event loop and tear down
-				LogW("%s[0x%016" PRIxPTR "]:\tURL %s not found\n", ModuleName, (uintptr_t) this,
-				     url.c_str());
-				use_default_status_page(HTTP::Status(404));
-				return; // Return and teardown
-			}
-		}
-
-		if (init_handler_data()) {
-			std::swap(smbuf, request->url_smatch);
-		} else {
-			return; // Return and teardown
-		}
-
-		// Read entire request if not streamed
-		if (!route->mode_streamed) {
-			state |= FLAG_NOT_STREAMED;
-
-			if (!determine_hp_state()) { // Check again
-				state |= STATE_WANT_READ;
-				return; // Return and request more data
-			}
-		}
-	}
-
-	// Run App
-	run_handler();
-
-	// No suitable thread pool found so far
-	//  session->instance.app_thread_pool->enqueue([](Context *__ctx, void *__ptr) { container_thread(__ctx, __ptr); }, this, sptr);
-	//  session->instance.app_thread_pool->submit(Context::container_thread, this, (void *)sptr);
-
-}
-
-void Context::run_raw_handler() {
-	if (app.flags & 0x1000) {
-		boost::asio::spawn(session->io_strand, [&, s = std::shared_ptr<Session>(session->my_shared_from_this())](boost::asio::yield_context yield){
-			state |= STATE_THREAD_RUNNING;
-			yield_context = &yield;
-
-			auto cur_mw = app.raw_mw->New();
-			cur_mw->__load_context(static_cast<ContextExposed *>(this));
-
-			if (app.config.app.catch_unhandled_exception) {
-				try {
-					cur_mw->handler();
-					LogD("%s[0x%016" PRIxPTR "]:\tdone running raw handler\n", ModuleName, (uintptr_t) this);
-				} catch (std::exception &e) {
-					LogE("%s[0x%016" PRIxPTR "]:\tuncaught exception in raw middleware at %p: %s\n",
-					     ModuleName, (uintptr_t) this, app.raw_mw.get(),
-					     e.what());
-				}
-			} else {
-				cur_mw->handler();
-				LogD("%s[0x%016" PRIxPTR "]:\tdone running raw handler\n", ModuleName, (uintptr_t) this);
-			}
-
-			session->close_socket();
-
-			state &= ~STATE_THREAD_RUNNING;
-		});
-	} else { // Run in thread
-		state |= STATE_THREAD_RUNNING;
-
-		container = std::thread([&, s = std::shared_ptr<Session>(session->my_shared_from_this())](){
-			auto cur_mw = app.raw_mw->New();
-			cur_mw->__load_context(static_cast<ContextExposed *>(this));
-
-			if (app.config.app.catch_unhandled_exception) {
-				try {
-					cur_mw->handler();
-					LogD("%s[0x%016" PRIxPTR "]:\tdone running raw handler\n", ModuleName, (uintptr_t) this);
-				} catch (std::exception &e) {
-					LogE("%s[0x%016" PRIxPTR "]:\tuncaught exception in raw middleware at %p: %s\n",
-					     ModuleName, (uintptr_t) this, app.raw_mw.get(),
-					     e.what());
-				}
-			} else {
-				try {
-					cur_mw->handler();
-					LogD("%s[0x%016" PRIxPTR "]:\tdone running raw handler\n", ModuleName, (uintptr_t) this);
-				} catch (...) {
-					state &= ~STATE_THREAD_RUNNING;
-					throw;
-				}
-			}
-
-			state &= ~STATE_THREAD_RUNNING;
-		});
-		container.detach();
-	}
-}
-
-void Context::run_handler() {
-	// Route declared async, run it here
-	if (route->mode_no_yield) {
-		if (app.config.app.catch_unhandled_exception) {
-			try {
-				next();
-			} catch (std::exception &e) {
-				auto hpos = handlers->pos_cur_handler;
-				LogE("%s[0x%016" PRIxPTR "]:\tuncaught exception in middleware #%zu at %p: %s\n",
-				     ModuleName, (uintptr_t) this, hpos, handlers->middleware_list[hpos].get(),
-				     e.what());
-			}
-		} else {
 			next();
-		}
-
-		response.reset();
-
-		session->reload_context();
-	} else if (route->mode_async) {
-		boost::asio::spawn(session->io_strand, [this, s = std::shared_ptr<Session>(session->my_shared_from_this())](boost::asio::yield_context yield){
-			state |= STATE_THREAD_RUNNING;
-			yield_context = response->yield_context = &yield;
-
-			if (app.config.app.catch_unhandled_exception) {
-				try {
-					next();
-				} catch (std::exception &e) {
-					auto hpos = handlers->pos_cur_handler;
-					LogE("%s[0x%016" PRIxPTR "]:\tuncaught exception in middleware #%zu at %p: %s\n",
-					     ModuleName, (uintptr_t) this, hpos, handlers->middleware_list[hpos].get(),
-					     e.what());
-				}
-			} else {
-				next();
-			}
-
-			response.reset();
-			state &= ~STATE_THREAD_RUNNING;
-
-			session->reload_context();
-		});
-	} else { // Run in thread
-		std::shared_ptr<Session> *sptr = new std::shared_ptr<Session>(session->my_shared_from_this());
-		state |= STATE_THREAD_RUNNING;
-		container = std::thread(&ContextExposed::container_thread, this, sptr);
-		container.detach();
-	}
-}
-
-
-void Context::use_default_status_page(const HTTP::Status &__status) {
-	ResponseContext rsp_ctx(this);
-	rsp_ctx.status = __status;
-
-	auto page = http_status_page_v(__status);
-	rsp_ctx.headers["Content-Length"] = std::to_string(page.size());
-
-
-	session->inline_async_write(std::move(Buffer(std::move(http_generator->generate_all(rsp_ctx)))));
-	session->inline_async_write(std::move(Buffer(std::move(page))));
-}
-
-void Context::container_thread(Context *__ctx, void *__session_sptr) {
-	auto *sptr = (std::shared_ptr<Session> *)__session_sptr;
-
-#ifdef DEBUG
-	LogD("%s[0x%016" PRIxPTR "]:\tcontainer_thread: started\n", ModuleName, (uintptr_t)__ctx);
-#endif
-
-	if (__ctx->app.config.app.catch_unhandled_exception) {
-		try {
-			__ctx->next();
 		} catch (std::exception &e) {
-			auto hpos = __ctx->handlers->pos_cur_handler;
-			LogE("%s[0x%016" PRIxPTR "]:\tuncaught exception in middleware #%zu at %p: %s\n", ModuleName,
-			     (uintptr_t) __ctx, hpos, __ctx->handlers->middleware_list[hpos].get(), e.what());
+			logger->error("[{} @ {:x}] uncaught exception in middleware #1 at {:x}: {}", ModuleName, (intptr_t) this, current_middleware,
+				      (intptr_t)route->middlewares[current_middleware].get(), e.what());
 		}
 	} else {
-		__ctx->next();
+		next();
 	}
 
-	__ctx->response.reset();
-
-#ifdef DEBUG
-	LogD("%s[0x%016" PRIxPTR "]:\tcontainer_thread: done\n", ModuleName, (uintptr_t)__ctx);
-#endif
-
-	__ctx->state &= ~STATE_THREAD_RUNNING;
-
-	__ctx->session->reload_context();
-
-	delete sptr; // This kind of memory management sucks
+	logger->debug("[{} @ {:x}] app_container terminated", ModuleName, (intptr_t) this);
 }
 
 void Context::next() {
-	auto &h = *handlers;
-
-#ifdef DEBUG
-	LogD("%s[0x%016" PRIxPTR "]:\tnext() called. handlers=%p\n", ModuleName, (uintptr_t)this, &h);
-#endif
-
-	if (h.pos_cur_handler > (h.middleware_list.size()-1)) {
+	if (current_middleware > (route->middlewares.size()-1)) {
 		// TODO: Empty warning
 	} else {
-		auto cur_mw = h.middleware_list[h.pos_cur_handler]->New();
+		auto cur_mw = (route->middlewares[current_middleware])->clone();
 
-		cur_mw->__load_context(static_cast<ContextExposed *>(this));
+		cur_mw->__load_context(this);
 
-#ifdef DEBUG
-		LogD("%s[0x%016" PRIxPTR "]:\tcalling middleware #%zu at %p\n", ModuleName, (uintptr_t)this, h.pos_cur_handler, cur_mw.get());
-#endif
+		logger->debug(R"([{} @ {:x}] calling middleware {} at {:x})", ModuleName, (intptr_t)this, current_middleware, (intptr_t)cur_mw.get());
 
-		h.pos_cur_handler++;
+		current_middleware++;
 		cur_mw->handler();
 	}
 }
 
-bool Context::init_handler_data() {
-	auto it_rmm = route->routemethods_mapping.find(http_parser->method());
+bool Context::match_route() {
+	// Match URL with routes
+	logger->debug(R"([{} @ {:x}] match_route called)", ModuleName, (intptr_t)this);
 
-	if (it_rmm != route->routemethods_mapping.end()) {
-		auto &rm = static_cast<RouteMethodsExposed &>(it_rmm->second);
+	std::smatch url_smatch; // Don't let this hell go out of scope
+	for (auto &it : app->routes()) {
+		if (std::regex_search(request.url(), url_smatch, it.first)) {
+			size_t smpos = 0;
+			for (auto &its : url_smatch) {
+				request.url_matched_capture_groups().push_back(its.str());
+				smpos++;
+			}
+			route = reinterpret_cast<RouteExposed *>(it.second.get());
+			logger->debug(R"([{} @ {:x}] route found, ptr={})", ModuleName, (intptr_t)this, (intptr_t)route);
 
-		if (rm.middlewares.empty())
-			throw std::logic_error("Method defined but no middlewares");
-
-		handlers = std::make_unique<HandlerData>(rm.middlewares);
-	} else {
-		auto &rm = static_cast<RouteMethodsExposed &>(route->routemethods_default);
-
-		if (rm.middlewares.empty()) {
-			use_default_status_page(HTTP::Status(404));
-			return false;
+			return true;
 		}
-
-		handlers = std::make_unique<HandlerData>(rm.middlewares);
 	}
 
-	response = std::make_unique<Response::ResponseContext>(this);
-	request = std::make_unique<Request::RequestContext>(this, *http_parser, *(session->conn_ctx));
+	if (app->route_global()) {
+		route = static_cast<RouteExposed *>(app->route_global().get());
+		logger->debug(R"([{} @ {:x}] global route found, ptr={})", ModuleName, (intptr_t)this, (intptr_t)route);
 
-	return true;
+		return true;
+	}
+
+	return false;
 }
 
-Context::Context(AppExposed &__ref_app, boost::asio::io_service& __io_svc, boost::asio::io_service::strand& __io_strand) : app(__ref_app), io_service(__io_svc), io_strand(__io_strand) {
-//	this.http_parser = std::unique_ptr<HTTP1::Parser, std::function<void(HTTP1::Parser*)>>(new (memory) HTTP1::Parser(), [](HTTP1::Parser *p){
-////		p->~Parser();
+void Context::suspend_connection() {
+	{
+		std::lock_guard<std::mutex> lg(conn_state_lock);
+		MHD_suspend_connection(mhd_conn);
+		conn_suspended = true;
+	}
+
+	logger->debug(R"([{} @ {:x}] conn suspended)", ModuleName, (intptr_t)this);
+	conn_state_cv.notify_one();
+}
+
+void Context::resume_connection() {
+	std::unique_lock<std::mutex> lg(conn_state_lock);
+
+//	conn_state_cv.wait(lg, [this]{
+//		puts("resume_connection: cv wakeup");
+//		return conn_suspended;
 //	});
-	http_parser = std::make_unique<HTTP1::Parser>();
-	http_generator = std::make_unique<HTTP1::Generator>();
+
+	if (!conn_suspended)
+		conn_state_cv.wait(lg);
+
+//	while (!MHD_get_connection_info(mhd_conn, MHD_CONNECTION_INFO_CONNECTION_SUSPENDED)->suspended) {
+//
+//		puts("wait for conn suspension on other end");
+//		std::this_thread::yield();
+//	}
+
+//	if (MHD_get_connection_info(mhd_conn, MHD_CONNECTION_INFO_CONNECTION_SUSPENDED)->suspended)
+//		MHD_resume_connection(mhd_conn);
+
+	if (conn_suspended) {
+		MHD_resume_connection(mhd_conn);
+		conn_suspended = false;
+		logger->debug(R"([{} @ {:x}] conn resumed)", ModuleName, (intptr_t)this);
+	} else {
+		logger->debug(R"([{} @ {:x}] conn not really resumed)", ModuleName, (intptr_t)this);
+	}
+
+
+}
+
+Context::~Context() {
+	wait_app_terminate();
 }
 
 
