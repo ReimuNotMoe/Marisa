@@ -13,6 +13,9 @@
 #pragma once
 
 #include <iostream>
+#include <istream>
+#include <ostream>
+#include <sstream>
 #include <fstream>
 #include <vector>
 #include <memory>

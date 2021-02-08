@@ -15,6 +15,16 @@
 using namespace Marisa;
 
 // Credit: https://nadeausoftware.com/articles/2012/07/c_c_tip_how_get_process_resident_set_size_physical_memory_use
+
+#if defined(_WIN32)
+#include "windows.h"
+#include "psapi.h"
+#endif
+
+#if defined(__APPLE__) && defined(__MACH__)
+#include <mach/mach.h>
+#endif
+
 size_t Util::memory_usage() {
 #if defined(_WIN32)
 	/* Windows -------------------------------------------------- */

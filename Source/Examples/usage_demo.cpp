@@ -13,6 +13,7 @@
 #include "../Marisa.hpp"
 
 #include <iostream>
+#include <ostream>
 
 using namespace Marisa;
 using namespace Middlewares;
