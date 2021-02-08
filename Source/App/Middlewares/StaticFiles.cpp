@@ -163,8 +163,7 @@ void StaticFiles::generate_file_page(DIR *__dirp) {
 		timespec mtim_;
 
 #ifdef __APPLE__
-		mtim_.tv_sec = sbuf.st_mtime;
-		mtim_.tv_nsec = sbuf.st_mtimensec;
+		mtim_ = sbuf.st_mtimespec;
 #else
 		mtim_ = sbuf.st_mtim;
 #endif
