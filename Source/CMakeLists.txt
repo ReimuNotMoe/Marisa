@@ -88,9 +88,7 @@ include_directories(${cpp-base64X_SOURCE_DIR})
 
 add_library(marisa ${SOURCE_FILES})
 
-
 target_link_libraries(marisa pthread z ssl crypto fmt cpp-base64X IODash ReGlob ${LIBMICROHTTPD_LIBRARIES})
-
 
 #add_executable(test_Coverage Tests/coverage.cpp)
 #target_link_libraries(test_Coverage marisa gcov)

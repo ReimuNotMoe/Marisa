@@ -90,7 +90,7 @@ namespace Marisa {
 
 		void mhd_flagslot_set(int flag, void *val);
 
-		static int mhd_connection_handler(void *cls, struct MHD_Connection *connection, const char *url, const char *method, const char *version, const char *upload_data,
+		static MHD_Result mhd_connection_handler(void *cls, struct MHD_Connection *connection, const char *url, const char *method, const char *version, const char *upload_data,
 						  size_t *upload_data_size, void **con_cls);
 		static void mhd_request_completed(void *cls, struct MHD_Connection *connection, void **con_cls, enum MHD_RequestTerminationCode toe);
 

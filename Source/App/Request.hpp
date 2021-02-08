@@ -45,22 +45,22 @@ namespace Marisa {
 
 		MHD_PostProcessor *mhd_pp = nullptr;
 
-		static int mhd_header_cb(void *cls, enum MHD_ValueKind kind, const char *key, const char *value);
+		static MHD_Result mhd_header_cb(void *cls, enum MHD_ValueKind kind, const char *key, const char *value);
 
-		static int mhd_header_key_cb(void *cls, enum MHD_ValueKind kind, const char *key, const char *value);
+		static MHD_Result mhd_header_key_cb(void *cls, enum MHD_ValueKind kind, const char *key, const char *value);
 
-		static int mhd_query_cb(void *cls, enum MHD_ValueKind kind, const char *key, const char *value);
+		static MHD_Result mhd_query_cb(void *cls, enum MHD_ValueKind kind, const char *key, const char *value);
 
-		static int mhd_query_key_cb(void *cls, enum MHD_ValueKind kind, const char *key, const char *value);
+		static MHD_Result mhd_query_key_cb(void *cls, enum MHD_ValueKind kind, const char *key, const char *value);
 
-		static int mhd_cookie_cb(void *cls, enum MHD_ValueKind kind, const char *key, const char *value);
+		static MHD_Result mhd_cookie_cb(void *cls, enum MHD_ValueKind kind, const char *key, const char *value);
 
-		static int mhd_cookie_key_cb(void *cls, enum MHD_ValueKind kind, const char *key, const char *value);
+		static MHD_Result mhd_cookie_key_cb(void *cls, enum MHD_ValueKind kind, const char *key, const char *value);
 
-		static int mhd_post_processor(void *cls, enum MHD_ValueKind kind, const char *key, const char *filename, const char *content_type,
+		static MHD_Result mhd_post_processor(void *cls, enum MHD_ValueKind kind, const char *key, const char *filename, const char *content_type,
 					      const char *transfer_encoding, const char *data, uint64_t off, size_t size);
 
-		static int mhd_streamed_post_processor(void *cls, enum MHD_ValueKind kind, const char *key, const char *filename, const char *content_type,
+		static MHD_Result mhd_streamed_post_processor(void *cls, enum MHD_ValueKind kind, const char *key, const char *filename, const char *content_type,
 						       const char *transfer_encoding, const char *data, uint64_t off, size_t size);
 
 		void init();

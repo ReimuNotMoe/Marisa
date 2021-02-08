@@ -196,7 +196,7 @@ Request::~Request() {
 	///close(input_sp[1]);
 }
 
-int Request::mhd_header_cb(void *cls, enum MHD_ValueKind kind, const char *key, const char *value) {
+MHD_Result Request::mhd_header_cb(void *cls, enum MHD_ValueKind kind, const char *key, const char *value) {
 	auto *ctx = (Request *)cls;
 
 	logger_sf->trace("[{} @ {:x}] mhd_cookie_key_cb: kind: {}, key: {}@{}, value: {}@{}",
@@ -207,7 +207,7 @@ int Request::mhd_header_cb(void *cls, enum MHD_ValueKind kind, const char *key, 
 	return MHD_YES;
 }
 
-int Request::mhd_header_key_cb(void *cls, enum MHD_ValueKind kind, const char *key, const char *value) {
+MHD_Result Request::mhd_header_key_cb(void *cls, enum MHD_ValueKind kind, const char *key, const char *value) {
 	auto *ctx = (Request *)cls;
 
 	logger_sf->trace("[{} @ {:x}] mhd_header_key_cb: kind: {}, key: {}@{}, value: {}@{}",
@@ -218,7 +218,7 @@ int Request::mhd_header_key_cb(void *cls, enum MHD_ValueKind kind, const char *k
 	return MHD_YES;
 }
 
-int Request::mhd_query_cb(void *cls, enum MHD_ValueKind kind, const char *key, const char *value) {
+MHD_Result Request::mhd_query_cb(void *cls, enum MHD_ValueKind kind, const char *key, const char *value) {
 	auto *ctx = (Request *)cls;
 
 	logger_sf->trace("[{} @ {:x}] mhd_query_cb: kind: {}, key: {}@{}, value: {}@{}",
@@ -229,7 +229,7 @@ int Request::mhd_query_cb(void *cls, enum MHD_ValueKind kind, const char *key, c
 	return MHD_YES;
 }
 
-int Request::mhd_query_key_cb(void *cls, enum MHD_ValueKind kind, const char *key, const char *value) {
+MHD_Result Request::mhd_query_key_cb(void *cls, enum MHD_ValueKind kind, const char *key, const char *value) {
 	auto *ctx = (Request *)cls;
 
 	logger_sf->trace("[{} @ {:x}] mhd_query_key_cb: kind: {}, key: {}@{}, value: {}@{}",
@@ -240,7 +240,7 @@ int Request::mhd_query_key_cb(void *cls, enum MHD_ValueKind kind, const char *ke
 	return MHD_YES;
 }
 
-int Request::mhd_cookie_cb(void *cls, enum MHD_ValueKind kind, const char *key, const char *value) {
+MHD_Result Request::mhd_cookie_cb(void *cls, enum MHD_ValueKind kind, const char *key, const char *value) {
 	auto *ctx = (Request *)cls;
 
 	logger_sf->trace("[{} @ {:x}] mhd_cookie_cb: kind: {}, key: {}@{}, value: {}@{}",
@@ -251,7 +251,7 @@ int Request::mhd_cookie_cb(void *cls, enum MHD_ValueKind kind, const char *key, 
 	return MHD_YES;
 }
 
-int Request::mhd_cookie_key_cb(void *cls, enum MHD_ValueKind kind, const char *key, const char *value) {
+MHD_Result Request::mhd_cookie_key_cb(void *cls, enum MHD_ValueKind kind, const char *key, const char *value) {
 	auto *ctx = (Request *)cls;
 
 	logger_sf->trace("[{} @ {:x}] mhd_cookie_key_cb: kind: {}, key: {}@{}, value: {}@{}",
@@ -262,7 +262,7 @@ int Request::mhd_cookie_key_cb(void *cls, enum MHD_ValueKind kind, const char *k
 	return MHD_YES;
 }
 
-int
+MHD_Result
 Request::mhd_post_processor(void *cls, enum MHD_ValueKind kind, const char *key, const char *filename, const char *content_type, const char *transfer_encoding, const char *data,
 			    uint64_t off, size_t size) {
 	auto *ctx = (Request *)cls;
@@ -281,7 +281,7 @@ Request::mhd_post_processor(void *cls, enum MHD_ValueKind kind, const char *key,
 	return MHD_YES;
 }
 
-int Request::mhd_streamed_post_processor(void *cls, enum MHD_ValueKind kind, const char *key, const char *filename, const char *content_type, const char *transfer_encoding,
+MHD_Result Request::mhd_streamed_post_processor(void *cls, enum MHD_ValueKind kind, const char *key, const char *filename, const char *content_type, const char *transfer_encoding,
 					 const char *data, uint64_t off, size_t size) {
 	auto *ctx = (Request *)cls;
 

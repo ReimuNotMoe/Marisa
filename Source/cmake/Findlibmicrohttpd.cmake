@@ -20,23 +20,14 @@ if (LIBMICROHTTPD_LIBRARIES AND LIBMICROHTTPD_INCLUDE_DIRS)
 else (LIBMICROHTTPD_LIBRARIES AND LIBMICROHTTPD_INCLUDE_DIRS)
     # use pkg-config to get the directories and then use these values
     # in the FIND_PATH() and FIND_LIBRARY() calls
-    if (${CMAKE_MAJOR_VERSION} EQUAL 2 AND ${CMAKE_MINOR_VERSION} EQUAL 4)
-        include(UsePkgConfig)
-        pkgconfig(libmicrohttpd _LIBMICROHTTPD_INCLUDEDIR _LIBMICROHTTPD_LIBDIR _LIBMICROHTTPD_LDFLAGS _LIBMICROHTTPD_CFLAGS)
-    else (${CMAKE_MAJOR_VERSION} EQUAL 2 AND ${CMAKE_MINOR_VERSION} EQUAL 4)
-        find_package(PkgConfig)
-        if (PKG_CONFIG_FOUND)
-            pkg_check_modules(_LIBMICROHTTPD libmicrohttpd)
-        endif (PKG_CONFIG_FOUND)
-    endif (${CMAKE_MAJOR_VERSION} EQUAL 2 AND ${CMAKE_MINOR_VERSION} EQUAL 4)
+
     find_path(LIBMICROHTTPD_INCLUDE_DIR
             NAMES
             microhttpd.h
             PATHS
-            ${_LIBMICROHTTPD_INCLUDEDIR}
-            /usr/include
             /usr/local/include
             /usr/local/opt/include
+            /usr/include
             /usr/pkg/include
             /opt/local/include
             /sw/include
@@ -46,10 +37,9 @@ else (LIBMICROHTTPD_LIBRARIES AND LIBMICROHTTPD_INCLUDE_DIRS)
             NAMES
             microhttpd
             PATHS
-            ${_LIBMICROHTTPD_LIBDIR}
-            /usr/lib
             /usr/local/lib
             /usr/local/opt/lib
+            /usr/lib
             /usr/pkg/lib
             /opt/local/lib
             /sw/lib

@@ -112,7 +112,7 @@ void App::mhd_flagslot_set(int flag, void *val) {
 	}
 }
 
-int App::mhd_connection_handler(void *cls, struct MHD_Connection *connection, const char *url, const char *method, const char *version, const char *upload_data, size_t *upload_data_size, void **con_cls) {
+MHD_Result App::mhd_connection_handler(void *cls, struct MHD_Connection *connection, const char *url, const char *method, const char *version, const char *upload_data, size_t *upload_data_size, void **con_cls) {
 
 	auto *app = (App *)cls;
 
