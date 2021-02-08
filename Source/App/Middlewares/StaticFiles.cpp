@@ -159,7 +159,17 @@ void StaticFiles::generate_file_page(DIR *__dirp) {
 		ss <<
 		   "</th>"
 		   "<th>";
-		ss << JSDate(&sbuf.st_mtim).toGoodString();
+
+		timespec mtim_;
+
+#ifdef __APPLE__
+		mtim_.tv_sec = sbuf.st_mtime;
+		mtim_.tv_nsec = sbuf.st_mtimensec;
+#else
+		mtim_ = sbuf.st_mtim;
+#endif
+
+		ss << JSDate(&mtim_).toGoodString();
 		ss << "</th>"
 		      "<th>";
 		ss << sbuf.st_size;
