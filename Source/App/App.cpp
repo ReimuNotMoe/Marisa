@@ -420,6 +420,8 @@ void App::start(ssize_t io_thread_count) {
 	logger_internal->info("Starting server on {} with {} I/O threads ...", listen_addr.to_string(), io_thread_count);
 	logger_internal->debug("[{} @ {:x}] start: mhd_flags=0x{:x}", ModuleName, (intptr_t)this, mhd_flags);
 
+	app_thread_pool_ = std::make_unique<ThreadPool>(32);
+
 	mhd_daemon = MHD_start_daemon(mhd_flags, 0,
 				      nullptr, nullptr,
 				      &mhd_connection_handler, this,

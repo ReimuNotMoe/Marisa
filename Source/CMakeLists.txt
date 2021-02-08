@@ -27,11 +27,10 @@ CPMAddPackage(
 )
 
 CPMAddPackage(
-        NAME threadpool11
-        GITHUB_REPOSITORY tghosgor/threadpool11
-        VERSION 3.0.0
-        GIT_TAG 39fcc1fc51671989d4f3c02903f9d39c6323b685
-        DOWNLOAD_ONLY YES
+        NAME ThreadPool
+        GITHUB_REPOSITORY progschj/ThreadPool
+        VERSION 1.0.0
+        GIT_TAG 9a42ec1329f259a5f4881a291db1dcb8f2ad9040
 )
 
 CPMAddPackage(
@@ -81,26 +80,13 @@ set(SOURCE_FILES
 #include_directories(${IODash_SOURCE_DIR})
 include_directories(${fmt_SOURCE_DIR}/include)
 include_directories(${spdlog_SOURCE_DIR}/include)
-include_directories(${threadpool11_SOURCE_DIR}/threadpool11/include/threadpool11)
+include_directories(${ThreadPool_SOURCE_DIR})
 include_directories(${cpp-base64X_SOURCE_DIR})
-
-add_library(threadpool11
-        ${threadpool11_SOURCE_DIR}/threadpool11/include/threadpool11/pool.hpp
-        ${threadpool11_SOURCE_DIR}/threadpool11/include/threadpool11/threadpool11.hpp
-        ${threadpool11_SOURCE_DIR}/threadpool11/include/threadpool11/work.hpp
-        ${threadpool11_SOURCE_DIR}/threadpool11/src/pool.cpp
-        )
-
-target_include_directories(threadpool11 PUBLIC ${threadpool11_SOURCE_DIR}/threadpool11/include)
-
-if (CMAKE_COMPILER_IS_GNUCXX)
-    target_link_libraries(threadpool11 pthread)
-endif()
 
 add_library(marisa ${SOURCE_FILES})
 
 
-target_link_libraries(marisa pthread z ssl crypto fmt cpp-base64X IODash ReGlob microhttpd threadpool11)
+target_link_libraries(marisa pthread z ssl crypto fmt cpp-base64X IODash ReGlob microhttpd)
 
 
 #add_executable(test_Coverage Tests/coverage.cpp)

@@ -71,7 +71,7 @@ namespace Marisa {
 		struct MHD_Daemon *mhd_daemon = nullptr;
 		SocketAddress<AddressFamily::Any> listen_addr;
 
-		threadpool11::pool app_thread_pool_;
+		std::unique_ptr<ThreadPool> app_thread_pool_;
 
 		std::shared_ptr<spdlog::sinks::stdout_color_sink_mt> spdlog_internal_sink_stdout;
 		std::shared_ptr<spdlog::sinks::daily_file_sink_mt> spdlog_internal_sink_file;
@@ -130,8 +130,8 @@ namespace Marisa {
 			return route_global_;
 		}
 
-		threadpool11::pool& app_thread_pool() noexcept {
-			return app_thread_pool_;
+		ThreadPool& app_thread_pool() noexcept {
+			return *app_thread_pool_;
 		}
 	};
 }

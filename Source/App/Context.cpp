@@ -53,7 +53,7 @@ void Context::process_request() {
 }
 
 void Context::start_app() {
-	app_future = app->app_thread_pool().post_work<void>([this]{
+	app_future = app->app_thread_pool().enqueue([this]{
 		app_container();
 	});
 
