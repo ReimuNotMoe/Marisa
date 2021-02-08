@@ -33,11 +33,7 @@ namespace Marisa {
 		Route &stream();
 		Route &nonblocking();
 
-		template<typename T>
-		Route& use(const T& middleware) {
-			middlewares.emplace_back(std::make_unique<T>(middleware));
-			return *this;
-		}
+		Route& use(const Middleware& middleware);
 
 		Route& use(std::function<void(Request *, Response *, Context *)> func);
 	};

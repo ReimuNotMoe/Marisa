@@ -25,7 +25,14 @@ Route &Route::nonblocking() {
 	return *this;
 }
 
+Route &Route::use(const Middleware &middleware) {
+	middlewares.emplace_back(middleware.clone());
+	return *this;
+}
+
 Route &Route::use(std::function<void(Request *, Response *, Context *)> func) {
 	middlewares.emplace_back(std::make_unique<Middlewares::Lambda>(std::move(func)));
 	return *this;
 }
+
+
