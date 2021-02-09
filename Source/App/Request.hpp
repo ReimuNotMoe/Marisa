@@ -16,6 +16,10 @@
 
 namespace Marisa {
 	class Request {
+	public:
+		struct PostData {
+			std::string key, value, filename, content_type, transfer_encoding;
+		};
 	protected:
 		void *context;
 
@@ -33,7 +37,7 @@ namespace Marisa {
 		std::unordered_map<std::string_view, std::string_view> cookie_cache;
 
 		std::vector<std::string> post_keys_cache;
-		std::unordered_map<std::string, std::string> post_cache;
+		std::unordered_map<std::string, PostData> post_cache;
 
 		SocketAddress<AddressFamily::Any> socket_address_cache;
 
@@ -98,7 +102,7 @@ namespace Marisa {
 			return post_keys_cache;
 		}
 
-		std::unordered_map<std::string, std::string>& post() noexcept {
+		std::unordered_map<std::string, PostData>& post() noexcept {
 			return post_cache;
 		}
 

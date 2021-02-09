@@ -272,12 +272,22 @@ Request::mhd_post_processor(void *cls, enum MHD_ValueKind kind, const char *key,
 			    uint64_t off, size_t size) {
 	auto *ctx = (Request *)cls;
 
-	if (!ctx->post_keys_cache.empty() && ctx->post_keys_cache.back() != key) {
-		ctx->post_keys_cache.emplace_back(key);
-	}
+	if (key) {
+		if (!ctx->post_keys_cache.empty() && ctx->post_keys_cache.back() != key) {
+			ctx->post_keys_cache.emplace_back(key);
+		}
 
-	auto &val = ctx->post_cache[key];
-	val.insert(val.end(), data, data+size);
+		auto &pd = ctx->post_cache[key];
+
+		if (size)
+			pd.value.insert(pd.value.end(), data, data + size);
+
+		if (content_type && pd.content_type.empty())
+			pd.content_type = content_type;
+
+		if (transfer_encoding && pd.transfer_encoding.empty())
+			pd.transfer_encoding = transfer_encoding;
+	}
 
 	logger_sf->trace("[{} @ {:x}] mhd_post_processor: kind: {}, key: {}, filename: {}, content_type: {}, transfer_encoding: {}, data: {}, off: {}, size: {}",
 			 ModuleName, (intptr_t)ctx, kind, key, filename, content_type, transfer_encoding, data, off, size);
@@ -290,7 +300,12 @@ MHD_Result Request::mhd_streamed_post_processor(void *cls, enum MHD_ValueKind ki
 						const char *data, uint64_t off, size_t size) {
 	auto *ctx = (Request *)cls;
 
-	(*ctx->post_callback_ptr)(key, {data, size}, filename, content_type, transfer_encoding);
+
+	(*ctx->post_callback_ptr)(key ? key : std::string_view(),
+				  size ? std::string_view(data, size) : std::string_view(),
+				  filename ? filename : std::string_view(),
+				  content_type ? content_type : std::string_view(),
+				  transfer_encoding ? transfer_encoding : std::string_view());
 
 	logger_sf->trace("[{} @ {:x}] mhd_streamed_post_processor: kind: {}, key: {}, filename: {}, content_type: {}, transfer_encoding: {}, data: {}, off: {}, size: {}",
 			 ModuleName, (intptr_t)ctx, kind, key, filename, content_type, transfer_encoding, data, off, size);
