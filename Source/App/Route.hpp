@@ -23,6 +23,7 @@ namespace Marisa {
 
 	class Route {
 	protected:
+		std::optional<std::vector<std::string>> path_keys;
 		std::vector<std::unique_ptr<Middleware>> middlewares;
 		bool mode_streamed = false;
 		bool mode_nonblocking = false;
@@ -40,6 +41,7 @@ namespace Marisa {
 
 	class RouteExposed : public Route {
 	public:
+		using Route::path_keys;
 		using Route::middlewares;
 		using Route::mode_streamed;
 		using Route::mode_nonblocking;

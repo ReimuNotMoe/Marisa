@@ -29,22 +29,58 @@ public:
 	}
 
 	void handler() override {
+		auto t1 = std::chrono::high_resolution_clock::now();
+
 		std::ostringstream ss;
 		ss << "<html><head>\n"
-		   << "<meta http-equiv=\"content-type\" content=\"text/html; charset=UTF-8\">\n"
+		      "<meta http-equiv=\"content-type\" content=\"text/html; charset=UTF-8\">\n"
 		   << "<title>" << str << "</title>\n"
-		   << "</head>";
+					  "<style>\n"
+					  " html, body {\n"
+					  "  overflow: hidden;\n"
+					  "  overflow-y: auto;\n"
+					  " }\n"
+					  "\n"
+					  " table {\n"
+					  "  width: 100%;\n"
+					  "  border: none;\n"
+					  "  border-collapse: collapse;\n"
+					  " }\n"
+					  "\n"
+					  " tr:nth-child(2n+1) {\n"
+					  "  border-width: 0;\n"
+					  "  border-style: none;\n"
+					  "  padding: 0;\n"
+					  "  background-color: gainsboro;\n"
+					  " }\n"
+					  "\n"
+					  " tr>th:nth-child(2n+1), tr>td:nth-child(2n+1) {\n"
+					  "  background-color: #0000001f;\n"
+					  "  width: 30%;\n"
+					  " }\n"
+					  "\n"
+					  " th, td {\n"
+					  "  border: none;\n"
+					  "  word-break: break-word;\n"
+					  "  padding: 4px 12px;\n"
+					  " }\n"
+					  "\n"
+					  " code {\n"
+					  "  word-break: break-word;\n"
+					  " }\n"
+					  "</style>"
+					  "</head>";
 
 		ss << "<body>"
-		   << "<h1>Hello world!</h1>"
-		   << "<hr>"
-		   << "URL: " << request->url() << "<br>"
-		   << "Method: " << request->method() << "<br>"
-		   << "Socket address: " << request->socket_address().to_string() << "<br><br>";
+		      "<h1>Hello world!</h1>"
+		      "<hr>"
+		      "URL: " << request->url() << "<br>"
+						   "Method: " << request->method() << "<br>"
+										      "Socket address: " << request->socket_address().to_string() << "<br><br>";
 
 
 		ss  << "Headers:<br>"
-		    << "<table style=\"width:100%\" border=\"1\">"
+		       "<table style=\"width:100%\" border=\"1\">"
 		       "<tr>"
 		       "<th>Key</th>"
 		       "<th>Value</th>"
@@ -64,7 +100,7 @@ public:
 		ss << "<br><br>";
 
 		ss  << "Cookies:<br>"
-		    << "<table style=\"width:100%\" border=\"3\">"
+		       "<table style=\"width:100%\" border=\"3\">"
 		       "<tr>"
 		       "<th>Key</th>"
 		       "<th>Value</th>"
@@ -83,21 +119,39 @@ public:
 
 		ss << "<br><br>";
 
-		ss  << "URL matched capture groups:<br>"
+		ss  << "URL Variables:<br>"
 		    << "<table style=\"width:100%\" border=\"3\">"
 		       "<tr>"
-		       "<th>Index</th>"
+		       "<th>Key/Index</th>"
 		       "<th>Value</th>"
 		       "</tr>";
 
 
-		size_t i=0;
-		for (auto &it : request->url_matched_capture_groups()) {
+		for (auto &it : request->url_vars()) {
 			ss << "<tr>";
-			ss << "<td>" << i << "</td>";
-			ss << "<td>" << it << "</td>";
+			ss << "<td>" << it.first << "</td>";
+			ss << "<td>" << it.second << "</td>";
 			ss << "</tr>";
-			i++;
+		}
+
+
+		ss << "</table>";
+
+		ss << "<br><br>";
+
+		ss  << "URL Query Strings:<br>"
+		       "<table style=\"width:100%\" border=\"3\">"
+		       "<tr>"
+		       "<th>Key</th>"
+		       "<th>Value</th>"
+		       "</tr>";
+
+
+		for (auto &it : request->query()) {
+			ss << "<tr>";
+			ss << "<td>" << it.first << "</td>";
+			ss << "<td>" << it.second << "</td>";
+			ss << "</tr>";
 		}
 
 
@@ -116,7 +170,12 @@ public:
 		ss << "</code>";
 
 		ss << "<br><br>";
+		ss << "Page generated in: ";
+		auto t2 = std::chrono::high_resolution_clock::now();
 
+		auto duration_ms = (double)std::chrono::duration_cast<std::chrono::microseconds>( t2 - t1 ).count() / 1000;
+		ss << std::to_string(duration_ms);
+		ss << " ms<br><br>";
 //		ss << "base64 encode/decode tests:" << "<br>";
 //		ss << "<code>";
 //		ss << "Base64::Encoder::encode_once(\"The quick brown fox jumps over the lazy dog\") = \"" << Base64::Encoder::encode_once("The quick brown fox jumps over the lazy dog") << "\"<br>";
@@ -135,7 +194,9 @@ public:
 int main() {
 	App myapp;
 
+	myapp.route("/:foo/:bar/**").use(usage_demo("Usage demo with path variables"));
 	myapp.route("/**").use(usage_demo("Usage demo"));
+
 
 	myapp.listen(8080);
 	myapp.start();

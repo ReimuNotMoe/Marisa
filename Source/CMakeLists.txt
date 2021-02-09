@@ -23,7 +23,7 @@ CPMAddPackage(
 CPMAddPackage(
         NAME ReGlob
         GITHUB_REPOSITORY SudoMaker/ReGlob
-        VERSION 0.0.4
+        VERSION 0.0.5
 )
 
 CPMAddPackage(

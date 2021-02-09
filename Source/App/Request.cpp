@@ -95,7 +95,7 @@ const std::vector<std::string_view> &Request::query_keys() {
 
 const std::unordered_map<std::string_view, std::string_view> &Request::cookie() {
 	if (cookie_cache.empty()) {
-		MHD_get_connection_values(((Context *)context)->mhd_conn, MHD_GET_ARGUMENT_KIND, &mhd_cookie_cb, this);
+		MHD_get_connection_values(((Context *)context)->mhd_conn, MHD_COOKIE_KIND, &mhd_cookie_cb, this);
 	}
 
 	return cookie_cache;
@@ -103,7 +103,7 @@ const std::unordered_map<std::string_view, std::string_view> &Request::cookie() 
 
 std::string_view Request::cookie(const std::string &key) {
 	if (cookie_cache.empty()) {
-		MHD_get_connection_values(((Context *)context)->mhd_conn, MHD_GET_ARGUMENT_KIND, &mhd_cookie_cb, this);
+		MHD_get_connection_values(((Context *)context)->mhd_conn, MHD_COOKIE_KIND, &mhd_cookie_cb, this);
 	}
 
 	auto it = cookie_cache.find(key);
@@ -116,7 +116,7 @@ std::string_view Request::cookie(const std::string &key) {
 
 const std::vector<std::string_view> &Request::cookie_keys() {
 	if (cookie_keys_cache.empty()) {
-		MHD_get_connection_values(((Context *)context)->mhd_conn, MHD_GET_ARGUMENT_KIND, &mhd_cookie_key_cb, this);
+		MHD_get_connection_values(((Context *)context)->mhd_conn, MHD_COOKIE_KIND, &mhd_cookie_key_cb, this);
 	}
 
 	return cookie_keys_cache;

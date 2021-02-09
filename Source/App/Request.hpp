@@ -25,7 +25,8 @@ namespace Marisa {
 
 		std::string url_, method_, version_;
 
-		std::vector<std::string> url_matched_capture_groups_;
+		std::vector<std::string> url_var_keys_;
+		std::unordered_map<std::string, std::string> url_vars_;
 
 		std::vector<std::string_view> header_keys_cache;
 		std::unordered_map<std::string_view, std::string_view> header_cache;
@@ -73,8 +74,12 @@ namespace Marisa {
 			return url_;
 		}
 
-		std::vector<std::string>& url_matched_capture_groups() noexcept {
-			return url_matched_capture_groups_;
+		std::vector<std::string>& url_var_keys() noexcept {
+			return url_var_keys_;
+		}
+
+		std::unordered_map<std::string, std::string>& url_vars() noexcept {
+			return url_vars_;
 		}
 
 		const std::string& method() noexcept {

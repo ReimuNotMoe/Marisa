@@ -271,9 +271,9 @@ void App::mhd_streamed_response_read_done(void *cls) {
 	try {
 		((ResponseExposed *) &ctx->response)->output_sp.first.shutdown();
 	} catch (std::exception &e) {
-		ctx->app->logger_internal->warn("[{} @ {:x}] streamed_response_read_done: shutdown failed: {}", ModuleName, (intptr_t)ctx->app, e.what());
-
+		ctx->app->logger_internal->warn("[{} @ {:x}] streamed_response_read_done: shutdown failed: {}, are you using MacOS??", ModuleName, (intptr_t)ctx->app, e.what());
 	}
+
 	ctx->app->logger_internal->debug("[{} @ {:x}] streamed_response_read_done: ctx={}, fd={}", ModuleName, (intptr_t)ctx->app, cls,
 					 ((ResponseExposed *)&ctx->response)->output_sp.first.fd());
 
@@ -322,15 +322,25 @@ Route &App::route(const std::string &__route) {
 
 	auto route_sptr = std::make_shared<Route>();
 
-	std::string route_regex_str = ReGlob::RegexpString(__route, {
-		.bash_syntax = true,
-		.full_match = true,
-		.capture = true,
-	});
+	std::string route_regex_str;
+
+	if (__route.find(':') != std::string::npos) {
+		logger_internal->debug(R"([{} @ {:x}] route contains variables)", ModuleName, (intptr_t)this);
+
+		auto p = ReGlob::PathResolve(__route);
+		route_regex_str = ReGlob::RegexpString(p.first, {.capture = true}, true);
+		std::static_pointer_cast<RouteExposed>(route_sptr)->path_keys = std::move(p.second);
+	} else {
+		route_regex_str = ReGlob::RegexpString(__route, {
+			.bash_syntax = true,
+			.full_match = true,
+			.capture = true,
+		});
+	}
 
 	std::regex route_regex(route_regex_str, std::regex::ECMAScript | std::regex::optimize);
 
-	logger_internal->debug(R"([{} @ {:x}] adding route: glob="{}", regex="{}", ptr={:x})", ModuleName, (intptr_t)this, __route, route_regex_str, (uintptr_t)route_sptr.get());
+	logger_internal->debug(R"([{} @ {:x}] adding route "{}": regex="{}", ptr={:x})", ModuleName, (intptr_t)this, __route, route_regex_str, (uintptr_t)route_sptr.get());
 
 	route_mapping.emplace_back(std::move(route_regex), route_sptr);
 

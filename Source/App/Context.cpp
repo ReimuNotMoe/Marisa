@@ -116,16 +116,26 @@ bool Context::match_route() {
 
 	std::smatch url_smatch; // Don't let this hell go out of scope
 	for (auto &it : app->routes()) {
-		if (std::regex_search(request.url(), url_smatch, it.first)) {
-			size_t smpos = 0;
-			for (auto &its : url_smatch) {
-				request.url_matched_capture_groups().push_back(its.str());
-				smpos++;
+		auto &rte = *std::static_pointer_cast<RouteExposed>(it.second);
+		if (rte.path_keys) {
+			request.url_vars() = ReGlob::PathMatch(it.first, rte.path_keys.value(), request.url());
+			if (!request.url_vars().empty()) {
+				route = reinterpret_cast<RouteExposed *>(it.second.get());
+				return true;
 			}
-			route = reinterpret_cast<RouteExposed *>(it.second.get());
-			logger->debug(R"([{} @ {:x}] route found, ptr={})", ModuleName, (intptr_t)this, (intptr_t)route);
+		} else {
+			if (std::regex_search(request.url(), url_smatch, it.first)) {
+				size_t smpos = 0;
+				for (auto &its : url_smatch) {
+					request.url_vars()[std::to_string(smpos)] = std::move(its.str());
+//					request.url_matched_capture_groups().push_back(its.str());
+					smpos++;
+				}
+				route = reinterpret_cast<RouteExposed *>(it.second.get());
+				logger->debug(R"([{} @ {:x}] route found, ptr={})", ModuleName, (intptr_t) this, (intptr_t) route);
 
-			return true;
+				return true;
+			}
 		}
 	}
 

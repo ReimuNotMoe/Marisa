@@ -19,16 +19,16 @@ using namespace Middlewares;
 using namespace Util;
 
 void StaticFiles::handler() {
-	auto &smatches = request->url_matched_capture_groups();
+	auto it_path = request->url_vars().find("1");
 
-	if (smatches.size() < 2) {
-		context->logger->error("[{} @ {:x}] Incorrectly configured route. Please use `/path/**'.", ModuleName, (intptr_t)this);
+	if (it_path == request->url_vars().end()) {
+		context->logger->error("[{} @ {:x}] Incorrectly configured route. Please use something like `/foo/bar/**'.", ModuleName, (intptr_t)this);
 		response->status = 500;
 		response->send(default_status_page(response->status));
 		return;
 	}
 
-	auto path = decodeURIComponent(smatches[1]);
+	auto path = decodeURIComponent(it_path->second);
 
 	// Get rid of script kiddies
 	if (path.find("/../") != std::string::npos) {
