@@ -109,18 +109,51 @@ void StaticFiles::generate_file_page(DIR *__dirp) {
 	      "<title>"
 	   << title
 	   << "</title>"
-	      "<style>"
-	      "html {"
-	      "font-family: Monospace;"
-	      "font-size: 16px;"
-	      "}"
+	      "<style>\n"
+	      " html, body {\n"
+	      "  font-family: Monospace;"
+	      "  overflow: hidden;\n"
+	      "  overflow-y: auto;\n"
+	      " }\n"
+	      "\n"
+	      " table {\n"
+	      "  width: 100%;\n"
+	      "  border: none;\n"
+	      "  border-collapse: collapse;\n"
+	      " }\n"
+	      "\n"
+	      " tr:nth-child(2n+1) {\n"
+	      "  border-width: 0;\n"
+	      "  border-style: none;\n"
+	      "  padding: 0;\n"
+	      "  background-color: gainsboro;\n"
+	      " }\n"
+	      "\n"
+	      " tr>th:nth-child(1), tr>td:nth-child(1) {\n"
+	      "  background-color: #0000001f;\n"
+	      "  text-align: center;\n"
+	      "  width: 5%;\n"
+	      "  min-width: 20px;\n"
+	      "  max-width: 40px;\n"
+	      " }\n"
+	      "\n"
+	      " th, td {\n"
+	      "  border: none;\n"
+	      "  word-break: break-word;\n"
+	      "  padding: 4px 12px;\n"
+	      "  text-align: left;\n"
+	      " }\n"
+	      "\n"
+	      " code {\n"
+	      "  word-break: break-word;\n"
+	      " }\n"
 	      "</style>"
 	      "</head>"
 	      "<body>"
 	      "<h1>"
 	   << title
 	   << "</h1>"
-	      "<table style=\"text-align: left;\" border=\"1\">"
+	      "<table>"
 	      "<tr>"
 	      "<th>Type</th>"
 	      "<th>Name</th>"
@@ -139,7 +172,7 @@ void StaticFiles::generate_file_page(DIR *__dirp) {
 		stat(full_path.c_str(), &sbuf);
 
 		ss << "<tr>"
-		      "<th valign=\"top\">";
+		      "<th>";
 
 		if (de->d_type == DT_DIR)
 			ss << "DIR";
@@ -147,6 +180,8 @@ void StaticFiles::generate_file_page(DIR *__dirp) {
 			ss << "REG";
 		else if (de->d_type == DT_LNK)
 			ss << "LNK";
+		else if (de->d_type == DT_SOCK)
+			ss << "SOCK";
 
 		ss << "</th>"
 		      "<th><a href=\"./";
@@ -181,5 +216,5 @@ void StaticFiles::generate_file_page(DIR *__dirp) {
 	      "<hr width=\"100%\"><address>Marisa/" MARISA_VERSION "</address>"
 	      "</body></html>";
 
-	response->send(std::move(ss.str()));
+	response->send(ss.str());
 }

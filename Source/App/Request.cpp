@@ -179,7 +179,7 @@ std::vector<uint8_t> Request::read() {
 			}
 			break;
 		} else {
-			if (errno == EAGAIN || errno == EWOULDBLOCK) {
+			if (errno == EAGAIN || errno == EWOULDBLOCK || errno == ERESTART) {
 				input_sp.second.set_nonblocking(false);
 
 				((Context *) context)->resume_connection();

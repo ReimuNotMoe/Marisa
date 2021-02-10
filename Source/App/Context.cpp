@@ -150,26 +150,44 @@ bool Context::match_route() {
 }
 
 void Context::suspend_connection() {
-	{
-		std::lock_guard<std::mutex> lg(conn_state_lock);
-		MHD_suspend_connection(mhd_conn);
-		conn_suspended = true;
-	}
+	std::unique_lock<std::mutex> lk(conn_state_lock);
+	conn_state_cv.wait(lk, [this]{return !conn_suspended;});
+	MHD_suspend_connection(mhd_conn);
+	conn_suspended = true;
 
-	logger->debug(R"([{} @ {:x}] conn suspended)", ModuleName, (intptr_t)this);
+	logger->info(R"([{} @ {:x}] conn suspended)", ModuleName, (intptr_t)this);
+
+	lk.unlock();
 	conn_state_cv.notify_one();
 }
 
 void Context::resume_connection() {
-	std::unique_lock<std::mutex> lg(conn_state_lock);
+	std::unique_lock<std::mutex> lk(conn_state_lock);
+
+	if (conn_suspended) {
+//		conn_state_cv.wait(lg, [this]{
+//			logger->info(R"([{} @ {:x}] conn not really resumed)", ModuleName, (intptr_t)this);
+//			return conn_suspended;
+//		});
+
+		MHD_resume_connection(mhd_conn);
+		conn_suspended = false;
+
+		logger->info(R"([{} @ {:x}] conn resumed)", ModuleName, (intptr_t)this);
+
+		lk.unlock();
+		conn_state_cv.notify_one();
+	} else {
+		logger->info(R"([{} @ {:x}] conn already resumed)", ModuleName, (intptr_t)this);
+		lk.unlock();
+	}
 
 //	conn_state_cv.wait(lg, [this]{
 //		puts("resume_connection: cv wakeup");
 //		return conn_suspended;
 //	});
 
-	if (!conn_suspended)
-		conn_state_cv.wait(lg);
+
 
 //	while (!MHD_get_connection_info(mhd_conn, MHD_CONNECTION_INFO_CONNECTION_SUSPENDED)->suspended) {
 //
@@ -179,14 +197,14 @@ void Context::resume_connection() {
 
 //	if (MHD_get_connection_info(mhd_conn, MHD_CONNECTION_INFO_CONNECTION_SUSPENDED)->suspended)
 //		MHD_resume_connection(mhd_conn);
-
-	if (conn_suspended) {
-		MHD_resume_connection(mhd_conn);
-		conn_suspended = false;
-		logger->debug(R"([{} @ {:x}] conn resumed)", ModuleName, (intptr_t)this);
-	} else {
-		logger->debug(R"([{} @ {:x}] conn not really resumed)", ModuleName, (intptr_t)this);
-	}
+//
+//	if (conn_suspended) {
+//		MHD_resume_connection(mhd_conn);
+//		conn_suspended = false;
+//		logger->debug(R"([{} @ {:x}] conn resumed)", ModuleName, (intptr_t)this);
+//	} else {
+//		logger->debug(R"([{} @ {:x}] conn not really resumed)", ModuleName, (intptr_t)this);
+//	}
 
 
 }

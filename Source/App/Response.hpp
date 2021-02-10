@@ -57,7 +57,11 @@ namespace Marisa {
 
 		bool finalized = false;
 
+		std::optional<std::chrono::system_clock::time_point> time_start;
+
 		void init();
+
+		void finish_time_measure(MHD_Response *resp);
 
 		static void mhd_upgrade_callback(void *cls, struct MHD_Connection *con, void *con_cls,
 						 const char *extra_in, size_t extra_in_size, MHD_socket sock, struct MHD_UpgradeResponseHandle *urh);
@@ -73,6 +77,8 @@ namespace Marisa {
 		Response(void *__context) : context(__context) {
 
 		}
+
+		void measure_execution_time();
 
 		bool streamed() const noexcept;
 

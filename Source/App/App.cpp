@@ -159,7 +159,7 @@ MHD_Result App::mhd_connection_handler(void *cls, struct MHD_Connection *connect
 					app->logger_internal->debug("[{} @ {:x}] rc_send returned 0 (other end close), terminating connection", ModuleName, (intptr_t)app);
 					return MHD_NO;
 				} else {
-					if (errno == EWOULDBLOCK || errno == EAGAIN) {
+					if (errno == EWOULDBLOCK || errno == EAGAIN || errno == ERESTART) {
 						app->logger_internal->debug("[{} @ {:x}] rc_send errno is EAGAIN, suspend connection", ModuleName, (intptr_t)app);
 						ctx->suspend_connection();
 						return MHD_YES;
@@ -255,7 +255,7 @@ ssize_t App::mhd_streamed_response_reader(void *cls, uint64_t pos, char *buf, si
 		ctx->app->logger_internal->debug(R"([{} @ {:x}] streamed_response_reader: all data read)", ModuleName, (intptr_t)ctx->app);
 		return MHD_CONTENT_READER_END_OF_STREAM;
 	} else {
-		if (errno == EWOULDBLOCK || errno == EAGAIN) {
+		if (errno == EWOULDBLOCK || errno == EAGAIN || errno == ERESTART) {
 			ctx->app->logger_internal->debug(R"([{} @ {:x}] streamed_response_reader: read EAGAIN)", ModuleName, (intptr_t)ctx->app);
 			ctx->suspend_connection();
 			return 0;

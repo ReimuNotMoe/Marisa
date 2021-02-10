@@ -45,6 +45,18 @@ Response::~Response() {
 	///close(output_sp[1]);
 }
 
+void Response::measure_execution_time() {
+	time_start = std::chrono::high_resolution_clock::now();
+}
+
+void Response::finish_time_measure(MHD_Response *resp) {
+	if (time_start) {
+		auto time_end = std::chrono::high_resolution_clock::now();
+		auto duration_ms = (float)std::chrono::duration_cast<std::chrono::microseconds>(time_end - *time_start).count() / 1000;
+		MHD_add_response_header(resp, "X-Marisa-Execution-Time", std::to_string(duration_ms).c_str());
+	}
+}
+
 bool Response::streamed() const noexcept {
 	auto *ctx = (Context *)context;
 
@@ -77,7 +89,7 @@ void Response::write(const void *buf, size_t len) {
 					output_sp.second.close();
 					break;
 				} else {
-					if (errno == EWOULDBLOCK || errno == EAGAIN) {
+					if (errno == EWOULDBLOCK || errno == EAGAIN || errno == ERESTART) {
 						logger->debug(R"([{} @ {:x}] write EAGAIN, resume_connection)", ModuleName, (intptr_t)this);
 
 						((Context *) context)->resume_connection();
@@ -120,6 +132,7 @@ void Response::send_persistent(const void *buf, size_t len) {
 			for (auto &it : header) {
 				MHD_add_response_header(resp, it.first.c_str(), it.second.c_str());
 			}
+			finish_time_measure(resp);
 			MHD_queue_response(((Context *) context)->mhd_conn, status, resp);
 			MHD_destroy_response(resp);
 			((Context *) context)->resume_connection();
@@ -149,6 +162,7 @@ void Response::send_file(std::string_view path) {
 				for (auto &it : header) {
 					MHD_add_response_header(resp, it.first.c_str(), it.second.c_str());
 				}
+				finish_time_measure(resp);
 				MHD_queue_response(((Context *) context)->mhd_conn, status, resp);
 				MHD_destroy_response(resp);
 				((Context *) context)->resume_connection();
@@ -175,6 +189,7 @@ void Response::end() {
 			for (auto &it : header) {
 				MHD_add_response_header(resp, it.first.c_str(), it.second.c_str());
 			}
+			finish_time_measure(resp);
 			MHD_queue_response(((Context *) context)->mhd_conn, status, resp);
 			MHD_destroy_response(resp);
 			((Context *) context)->resume_connection();
@@ -198,6 +213,7 @@ void Response::upgrade() {
 			for (auto &it : header) {
 				MHD_add_response_header(resp, it.first.c_str(), it.second.c_str());
 			}
+			finish_time_measure(resp);
 			MHD_queue_response(((Context *) context)->mhd_conn, status, resp);
 			MHD_destroy_response(resp);
 			((Context *) context)->resume_connection();
@@ -208,6 +224,7 @@ void Response::upgrade() {
 		logger->warn(R"([{} @ {:x}] upgrade() called but already finalized)", ModuleName, (intptr_t)this);
 	}
 }
+
 
 
 

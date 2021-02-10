@@ -29,6 +29,8 @@ public:
 	}
 
 	void handler() override {
+		response->measure_execution_time();
+
 		auto t1 = std::chrono::high_resolution_clock::now();
 
 		std::ostringstream ss;
