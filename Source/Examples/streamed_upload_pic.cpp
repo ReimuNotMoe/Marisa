@@ -46,7 +46,7 @@ int main() {
 			while (req->read_post([&](auto &key, const std::string_view &value, auto &filename, auto &content_type, auto &transfer_encoding) {
 				if (!value.empty()) {
 					encoded += b64_enc.encode(value);
-					std::cout << "encoded size = " << encoded.size() << "\n";
+//					std::cout << "encoded size = " << encoded.size() << "\n";
 				}
 			}));
 

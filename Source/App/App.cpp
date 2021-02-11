@@ -183,7 +183,6 @@ MHD_Result App::mhd_connection_handler(void *cls, struct MHD_Connection *connect
 					}
 //					close(fd_input);
 					((RequestExposed *)&ctx->request)->input_sp_send_end_closed = true;
-					ctx->conn_state_cv.notify_one();
 				}
 
 //				if (ctx->response.stream_started()) {
@@ -252,6 +251,7 @@ ssize_t App::mhd_streamed_response_reader(void *cls, uint64_t pos, char *buf, si
 	if (rc_recv > 0) {
 		return rc_recv;
 	} else if (rc_recv == 0) {
+		ctx->streamed_response_done = true;
 		ctx->app->logger_internal->debug(R"([{} @ {:x}] streamed_response_reader: all data read)", ModuleName, (intptr_t)ctx->app);
 		return MHD_CONTENT_READER_END_OF_STREAM;
 	} else {
@@ -260,6 +260,7 @@ ssize_t App::mhd_streamed_response_reader(void *cls, uint64_t pos, char *buf, si
 			ctx->suspend_connection();
 			return 0;
 		} else {
+			ctx->app->logger_internal->error(R"([{} @ {:x}] streamed_response_reader: read errno: {})", ModuleName, (intptr_t)ctx->app, errno);
 			return MHD_CONTENT_READER_END_WITH_ERROR;
 		}
 	}
@@ -274,7 +275,7 @@ void App::mhd_streamed_response_read_done(void *cls) {
 		ctx->app->logger_internal->warn("[{} @ {:x}] streamed_response_read_done: shutdown failed: {}, are you using MacOS??", ModuleName, (intptr_t)ctx->app, e.what());
 	}
 
-	ctx->app->logger_internal->debug("[{} @ {:x}] streamed_response_read_done: ctx={}, fd={}", ModuleName, (intptr_t)ctx->app, cls,
+	ctx->app->logger_internal->info("[{} @ {:x}] streamed_response_read_done: ctx={}, fd={}", ModuleName, (intptr_t)ctx->app, cls,
 					 ((ResponseExposed *)&ctx->response)->output_sp.first.fd());
 
 }
@@ -285,21 +286,20 @@ void App::mhd_request_completed(void *cls, struct MHD_Connection *connection, vo
 	auto *ctx = (Context *)(*con_cls);
 
 	if (ctx) {
-//		auto &fd_input_ref = ((Request::RequestContextExposed *)&ctx->request)->input_sp;
-//		auto &fd_output_ref = ((Response::ResponseContextExposed *)&ctx->response)->output_sp;
+		// Ensure socketpairs are disconnected when in streamed mode
+		// In case of improper connection shutdown, such as client disconnected in middle of sending post data
+		if (ctx->streamed()) {
+			auto &fd_input_ref = ((RequestExposed *) &ctx->request)->input_sp;
+			auto &fd_output_ref = ((ResponseExposed *) &ctx->response)->output_sp;
 
-//		auto fd_input = ((RequestContextExposed *)&ctx->request)->input_sp;
-//		auto fd_output = ((ResponseContextExposed *)&ctx->response)->output_sp;
+			// Prevent App thread from stuck at socketpair I/O
+			fd_input_ref.first.shutdown();
+			fd_output_ref.first.shutdown();
 
-//		fd_input_ref[0] = -1;
-		///close(fd_input[0]);
-//		fd_output_ref[0] = -1;
-		///close(fd_output[0]);
-//		fd_input_ref[1] = -1;
-//		close(fd_input[1]);
-//		fd_output_ref[1] = -1;
-//		close(fd_output[1]);
-		ctx->conn_state_cv.notify_all();
+			// Prevent App thread from infinite looping at end()
+			ctx->streamed_response_done = true;
+		}
+
 		delete ctx;
 		*con_cls = nullptr;
 
@@ -448,7 +448,8 @@ void App::start(ssize_t io_thread_count) {
 				      MHD_OPTION_NOTIFY_COMPLETED, &mhd_request_completed, this,
 				      MHD_OPTION_SOCK_ADDR, listen_addr.raw(),
 				      MHD_OPTION_THREAD_POOL_SIZE, io_thread_count,
-//				      MHD_OPTION_CONNECTION_MEMORY_LIMIT, 256 * 1024,
+				      MHD_OPTION_CONNECTION_MEMORY_LIMIT, 128 * 1024,
+				      MHD_OPTION_CONNECTION_MEMORY_INCREMENT, 8192,
 				      mhd_extra_flags[0], mhd_extra_flag_values[0],
 				      mhd_extra_flags[1], mhd_extra_flag_values[1],
 				      mhd_extra_flags[2], mhd_extra_flag_values[2],

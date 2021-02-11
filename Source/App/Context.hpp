@@ -17,6 +17,7 @@
 #include "App.hpp"
 #include "Response.hpp"
 #include "Request.hpp"
+#include "../Util/Util.hpp"
 
 namespace Marisa {
 
@@ -45,7 +46,6 @@ namespace Marisa {
 		struct MHD_Connection *mhd_conn = nullptr;
 		bool conn_suspended = false;
 		std::mutex conn_state_lock;
-		std::condition_variable conn_state_cv;
 
 		size_t processed_post_size = 0;
 
@@ -89,6 +89,8 @@ namespace Marisa {
 //		}
 
 		bool streamed();
+
+		bool streamed_response_done = false;
 
 		void suspend_connection();
 		void resume_connection();

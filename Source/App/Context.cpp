@@ -151,14 +151,16 @@ bool Context::match_route() {
 
 void Context::suspend_connection() {
 	std::unique_lock<std::mutex> lk(conn_state_lock);
-	conn_state_cv.wait(lk, [this]{return !conn_suspended;});
-	MHD_suspend_connection(mhd_conn);
-	conn_suspended = true;
+	if (!conn_suspended) {
+		MHD_suspend_connection(mhd_conn);
 
-	logger->info(R"([{} @ {:x}] conn suspended)", ModuleName, (intptr_t)this);
+		conn_suspended = true;
 
-	lk.unlock();
-	conn_state_cv.notify_one();
+		logger->debug(R"([{} @ {:x}] conn suspended)", ModuleName, (intptr_t) this);
+	} else {
+		logger->debug(R"([{} @ {:x}] conn already suspended)", ModuleName, (intptr_t) this);
+	}
+//	conn_state_cv.notify_one();
 }
 
 void Context::resume_connection() {
@@ -171,15 +173,14 @@ void Context::resume_connection() {
 //		});
 
 		MHD_resume_connection(mhd_conn);
+
 		conn_suspended = false;
 
-		logger->info(R"([{} @ {:x}] conn resumed)", ModuleName, (intptr_t)this);
+		logger->debug(R"([{} @ {:x}] conn resumed)", ModuleName, (intptr_t)this);
 
-		lk.unlock();
-		conn_state_cv.notify_one();
+//		conn_state_cv.notify_one();
 	} else {
-		logger->info(R"([{} @ {:x}] conn already resumed)", ModuleName, (intptr_t)this);
-		lk.unlock();
+		logger->debug(R"([{} @ {:x}] conn already resumed)", ModuleName, (intptr_t)this);
 	}
 
 //	conn_state_cv.wait(lg, [this]{

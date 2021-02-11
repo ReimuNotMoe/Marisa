@@ -179,10 +179,20 @@ void Response::send_file(std::string_view path) {
 }
 
 void Response::end() {
+	using namespace std::chrono_literals;
+
 	if (!finalized) {
 		if (streamed()) {
 			output_sp.second.close();
-			((Context *) context)->resume_connection();
+
+			size_t rcnt = 0;
+			while (!((Context *) context)->streamed_response_done) {
+				logger->debug(R"([{} @ {:x}] poll response_done {} times)", ModuleName, (intptr_t)this, rcnt);
+				((Context *) context)->resume_connection();
+				std::this_thread::sleep_for(std::chrono::milliseconds((int)pow(2, rcnt)));
+				rcnt++;
+			}
+
 			logger->debug(R"([{} @ {:x}] end in stream mode)", ModuleName, (intptr_t)this);
 		} else {
 			auto resp = MHD_create_response_from_buffer(output_buffer.size(), output_buffer.memory(), MHD_RESPMEM_MUST_FREE);
@@ -192,6 +202,8 @@ void Response::end() {
 			finish_time_measure(resp);
 			MHD_queue_response(((Context *) context)->mhd_conn, status, resp);
 			MHD_destroy_response(resp);
+
+
 			((Context *) context)->resume_connection();
 
 			logger->debug(R"([{} @ {:x}] end in normal mode)", ModuleName, (intptr_t)this);
