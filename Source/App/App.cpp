@@ -276,7 +276,7 @@ void App::mhd_streamed_response_read_done(void *cls) {
 	}
 
 	ctx->app->logger_internal->info("[{} @ {:x}] streamed_response_read_done: ctx={}, fd={}", ModuleName, (intptr_t)ctx->app, cls,
-					 ((ResponseExposed *)&ctx->response)->output_sp.first.fd());
+					((ResponseExposed *)&ctx->response)->output_sp.first.fd());
 
 }
 
@@ -308,11 +308,11 @@ void App::mhd_request_completed(void *cls, struct MHD_Connection *connection, vo
 
 }
 
-Route &App::route(const std::string &__route) {
-	if (__route.empty())
+Route &App::route(const std::string &expression) {
+	if (expression.empty())
 		throw std::invalid_argument("route path can't be an empty string");
 
-	if (__route == "*") {
+	if (expression == "*") {
 		route_global_ = std::make_shared<Route>();
 		return *route_global_;
 	}
@@ -324,14 +324,14 @@ Route &App::route(const std::string &__route) {
 
 	std::string route_regex_str;
 
-	if (__route.find(':') != std::string::npos) {
+	if (expression.find(':') != std::string::npos) {
 		logger_internal->debug(R"([{} @ {:x}] route contains variables)", ModuleName, (intptr_t)this);
 
-		auto p = ReGlob::PathResolve(__route);
+		auto p = ReGlob::PathResolve(expression);
 		route_regex_str = ReGlob::RegexpString(p.first, {.capture = true}, true);
 		std::static_pointer_cast<RouteExposed>(route_sptr)->path_keys = std::move(p.second);
 	} else {
-		route_regex_str = ReGlob::RegexpString(__route, {
+		route_regex_str = ReGlob::RegexpString(expression, {
 			.bash_syntax = true,
 			.full_match = true,
 			.capture = true,
@@ -340,45 +340,45 @@ Route &App::route(const std::string &__route) {
 
 	std::regex route_regex(route_regex_str, std::regex::ECMAScript | std::regex::optimize);
 
-	logger_internal->debug(R"([{} @ {:x}] adding route "{}": regex="{}", ptr={:x})", ModuleName, (intptr_t)this, __route, route_regex_str, (uintptr_t)route_sptr.get());
+	logger_internal->debug(R"([{} @ {:x}] adding route "{}": regex="{}", ptr={:x})", ModuleName, (intptr_t)this, expression, route_regex_str, (uintptr_t)route_sptr.get());
 
 	route_mapping.emplace_back(std::move(route_regex), route_sptr);
 
 	return *route_sptr;
 }
 
-Route &App::route(std::regex __route_regexp) {
+Route &App::route(std::regex regexp) {
 	auto route_sptr = std::make_shared<Route>();
-	route_mapping.emplace_back(std::move(__route_regexp), route_sptr);
+	route_mapping.emplace_back(std::move(regexp), route_sptr);
 
 	return *route_sptr;
 }
 
-void App::listen(uint16_t __port, bool ipv6_enabled) {
+void App::listen(uint16_t port, bool ipv6_enabled) {
 	if (ipv6_enabled) {
 		listen_addr.as_ipv6()->from_string("::");
-		listen_addr.as_ipv6()->port() = __port;
+		listen_addr.as_ipv6()->port() = port;
 		listen_addr.family() = AddressFamily::IPv6;
 
 		mhd_flags |= MHD_USE_DUAL_STACK;
 	} else {
 		listen_addr.as_ipv4()->from_string("0.0.0.0");
-		listen_addr.as_ipv4()->port() = __port;
+		listen_addr.as_ipv4()->port() = port;
 		listen_addr.family() = AddressFamily::IPv4;
 
 		mhd_flags &= ~MHD_USE_DUAL_STACK;
 	}
 }
 
-void App::listen_v4(const std::string &__address, uint16_t __port) {
-	listen_addr.as_ipv4()->from_string(__address);
-	listen_addr.as_ipv4()->port() = __port;
+void App::listen_v4(const std::string &address, uint16_t port) {
+	listen_addr.as_ipv4()->from_string(address);
+	listen_addr.as_ipv4()->port() = port;
 	listen_addr.family() = AddressFamily::IPv4;
 }
 
-void App::listen_v6(const std::string &__address, uint16_t __port) {
-	listen_addr.as_ipv6()->from_string(__address);
-	listen_addr.as_ipv6()->port() = __port;
+void App::listen_v6(const std::string &address, uint16_t port) {
+	listen_addr.as_ipv6()->from_string(address);
+	listen_addr.as_ipv6()->port() = port;
 	listen_addr.family() = AddressFamily::IPv6;
 }
 
@@ -448,6 +448,7 @@ void App::start(ssize_t io_thread_count) {
 				      MHD_OPTION_NOTIFY_COMPLETED, &mhd_request_completed, this,
 				      MHD_OPTION_SOCK_ADDR, listen_addr.raw(),
 				      MHD_OPTION_THREAD_POOL_SIZE, io_thread_count,
+				      MHD_OPTION_CONNECTION_TIMEOUT, config.connection.timeout_seconds,
 				      MHD_OPTION_CONNECTION_MEMORY_LIMIT, 128 * 1024,
 				      MHD_OPTION_CONNECTION_MEMORY_INCREMENT, 8192,
 				      mhd_extra_flags[0], mhd_extra_flag_values[0],

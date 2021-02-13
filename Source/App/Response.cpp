@@ -123,6 +123,15 @@ void Response::write(const char *buf) {
 	write(buf, strlen(buf));
 }
 
+void Response::send_status_page(int code) {
+	if (code != -1)
+		status = code;
+
+	auto &page = Util::default_status_page(status);
+	header["Content-Type"] = "text/html";
+	send_persistent(page.c_str(), page.size());
+}
+
 void Response::send_persistent(const void *buf, size_t len) {
 	if (!finalized) {
 		if (streamed()) {
@@ -236,6 +245,9 @@ void Response::upgrade() {
 		logger->warn(R"([{} @ {:x}] upgrade() called but already finalized)", ModuleName, (intptr_t)this);
 	}
 }
+
+
+
 
 
 

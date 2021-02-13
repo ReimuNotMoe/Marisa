@@ -52,7 +52,7 @@ void StaticFiles::handler() {
 			response->status = 500;
 		}
 
-		response->send(default_status_page(response->status));
+		response->send_status_page();
 		return;
 	}
 
@@ -63,7 +63,7 @@ void StaticFiles::handler() {
 			generate_file_page(dirp);
 		} else {
 			response->status = 403;
-			response->send(default_status_page(response->status));
+			response->send_status_page();
 		}
 
 		closedir(dirp);
@@ -85,13 +85,13 @@ void StaticFiles::handler() {
 			} catch (std::system_error& e) {
 				context->logger->error("[{} @ {:x}] send_file error: {}", ModuleName, (intptr_t)this, e.what());
 				response->status = 500;
-				response->send(default_status_page(response->status));
+				response->send_status_page();
 				return;
 			}
 		} else {
 			response->status = 500;
 		}
-		response->send(default_status_page(response->status));
+		response->send_status_page();
 		return;
 	}
 }

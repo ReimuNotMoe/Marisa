@@ -91,10 +91,10 @@ static std::unordered_map<int, std::string> status_code_strings = {
 
 static std::unordered_map<int, std::string> cached_status_page;
 
-static Util::SpinLock lock;
+static std::mutex lock;
 
 const std::string& Util::default_status_page(int status) {
-	std::lock_guard<Util::SpinLock> lg(lock);
+	std::lock_guard<std::mutex> lg(lock);
 
 	auto it = cached_status_page.find(status);
 

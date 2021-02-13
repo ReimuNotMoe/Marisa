@@ -21,6 +21,3 @@ void Middleware::__load_context(Context *__context) noexcept {
 	response = &context->response;
 }
 
-void Middleware::next() {
-	context->next();
-}

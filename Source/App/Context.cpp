@@ -28,7 +28,7 @@ Context::Context(App *__app, struct MHD_Connection *__mhd_conn, const char *__mh
 	static_cast<ResponseExposed &>(response).init();
 }
 
-bool Context::streamed() {
+bool Context::streamed() const noexcept {
 	if (route)
 		return route->mode_streamed;
 	else
@@ -38,8 +38,8 @@ bool Context::streamed() {
 void Context::process_request() {
 	if (route) {
 		if (route->middlewares.empty()) {
-			logger->error("[{} @ {:x}] Route {}: Method defined but no middlewares", ModuleName, (intptr_t)this, (intptr_t)route);
-			use_default_status_page(500);
+			logger->error("[{} @ {:x}] Route {}: No middlewares", ModuleName, (intptr_t)this, (intptr_t)route);
+			response.send_status_page(500);
 			return;
 		} else {
 			return;
@@ -47,7 +47,7 @@ void Context::process_request() {
 	} else { // Route not matched, just send error page on event loop and tear down
 		logger->debug("[{} @ {:x}] Route not found", ModuleName, (intptr_t)this, (intptr_t)route);
 
-		use_default_status_page(404);
+		response.send_status_page(404);
 		return; // Return and teardown
 	}
 }
@@ -72,42 +72,28 @@ void Context::wait_app_terminate() {
 	}
 }
 
-void Context::use_default_status_page(int __status) {
-	auto &page = Util::default_status_page(__status);
-	auto rsp = MHD_create_response_from_buffer(page.size(), (void *)page.c_str(), MHD_RESPMEM_PERSISTENT);
-	MHD_add_response_header(rsp, MHD_HTTP_HEADER_CONTENT_TYPE, "text/html");
-	MHD_queue_response(mhd_conn, __status, rsp);
-	MHD_destroy_response(rsp);
-}
+void Context::app_container() noexcept {
+	try {
+		for (current_middleware=0; current_middleware<route->middlewares.size(); current_middleware++) {
+			auto cur_mw = (route->middlewares[current_middleware])->clone();
 
-void Context::app_container() {
-	if (app->config.app.catch_unhandled_exception) {
-		try {
-			next();
-		} catch (std::exception &e) {
-			logger->error("[{} @ {:x}] uncaught exception in middleware #1 at {:x}: {}", ModuleName, (intptr_t) this, current_middleware,
-				      (intptr_t)route->middlewares[current_middleware].get(), e.what());
+			logger->debug(R"([{} @ {:x}] calling middleware {} at {:x})", ModuleName, (intptr_t)this, current_middleware, (intptr_t)cur_mw.get());
+
+			cur_mw->__load_context(this);
+			cur_mw->handler();
+
+			if (static_cast<ResponseExposed &>(response).finalized) {
+				logger->debug(R"([{} @ {:x}] response finalized, not advancing middleware index)", ModuleName, (intptr_t)this);
+				break;
+			}
 		}
-	} else {
-		next();
+	} catch (std::exception &e) {
+		logger->error("[{} @ {:x}] uncaught exception in middleware #{} at {:x}: {}", ModuleName, (intptr_t) this, current_middleware,
+			      (intptr_t)route->middlewares[current_middleware].get(), e.what());
 	}
+
 
 	logger->debug("[{} @ {:x}] app_container terminated", ModuleName, (intptr_t) this);
-}
-
-void Context::next() {
-	if (current_middleware > (route->middlewares.size()-1)) {
-		// TODO: Empty warning
-	} else {
-		auto cur_mw = (route->middlewares[current_middleware])->clone();
-
-		cur_mw->__load_context(this);
-
-		logger->debug(R"([{} @ {:x}] calling middleware {} at {:x})", ModuleName, (intptr_t)this, current_middleware, (intptr_t)cur_mw.get());
-
-		current_middleware++;
-		cur_mw->handler();
-	}
 }
 
 bool Context::match_route() {
@@ -160,54 +146,29 @@ void Context::suspend_connection() {
 	} else {
 		logger->debug(R"([{} @ {:x}] conn already suspended)", ModuleName, (intptr_t) this);
 	}
-//	conn_state_cv.notify_one();
 }
 
 void Context::resume_connection() {
 	std::unique_lock<std::mutex> lk(conn_state_lock);
 
 	if (conn_suspended) {
-//		conn_state_cv.wait(lg, [this]{
-//			logger->info(R"([{} @ {:x}] conn not really resumed)", ModuleName, (intptr_t)this);
-//			return conn_suspended;
-//		});
-
 		MHD_resume_connection(mhd_conn);
-
 		conn_suspended = false;
 
 		logger->debug(R"([{} @ {:x}] conn resumed)", ModuleName, (intptr_t)this);
-
-//		conn_state_cv.notify_one();
 	} else {
 		logger->debug(R"([{} @ {:x}] conn already resumed)", ModuleName, (intptr_t)this);
 	}
 
-//	conn_state_cv.wait(lg, [this]{
-//		puts("resume_connection: cv wakeup");
-//		return conn_suspended;
-//	});
+}
 
+void Context::run(Middleware &middleware) {
+	middleware.__load_context(this);
+	middleware.handler();
+}
 
-
-//	while (!MHD_get_connection_info(mhd_conn, MHD_CONNECTION_INFO_CONNECTION_SUSPENDED)->suspended) {
-//
-//		puts("wait for conn suspension on other end");
-//		std::this_thread::yield();
-//	}
-
-//	if (MHD_get_connection_info(mhd_conn, MHD_CONNECTION_INFO_CONNECTION_SUSPENDED)->suspended)
-//		MHD_resume_connection(mhd_conn);
-//
-//	if (conn_suspended) {
-//		MHD_resume_connection(mhd_conn);
-//		conn_suspended = false;
-//		logger->debug(R"([{} @ {:x}] conn resumed)", ModuleName, (intptr_t)this);
-//	} else {
-//		logger->debug(R"([{} @ {:x}] conn not really resumed)", ModuleName, (intptr_t)this);
-//	}
-
-
+void Context::run(const std::function<void(Request *, Response *, Context *)>& func) {
+	func(&request, &response, this);
 }
 
 Context::~Context() {

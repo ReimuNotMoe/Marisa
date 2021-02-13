@@ -31,8 +31,6 @@ namespace Marisa {
 
 		void __load_context(Context *__context) noexcept;
 
-		void next();
-
 		virtual void handler() = 0;
 
 		virtual std::unique_ptr<Middleware> clone() const = 0;

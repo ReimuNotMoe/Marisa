@@ -27,34 +27,31 @@ namespace Marisa {
 	public:
 		struct Config {
 			struct http {
-				size_t max_header_size = 10 * 1024;
-				size_t max_post_size = 128 * 1024;
-				uint16_t max_requests_per_conn = 65535;
-
+				size_t max_post_size = 128 * 1024;	/*!< Max size of POST data allowed in normal mode */
 			} http;
 
 			struct logging {
 				struct internal {
-					spdlog::level::level_enum level = spdlog::level::debug;
-					std::string pattern = "%Y-%m-%d %T.%f %z [%^%l%$] %v";
-					bool stdout_enabled = true;
-					std::string file;
+					spdlog::level::level_enum level = spdlog::level::debug;		/*!< Loglevel of internal components */
+					std::string pattern = "%Y-%m-%d %T.%f %z [%^%l%$] %v";		/*!< Log pattern of internal components. See spdlog manual for details */
+					bool stdout_enabled = true;					/*!< Log to standard output */
+					std::string file;						/*!< File path to log to. Disabled if unset */
 				} internal;
 
 				struct access {
-					spdlog::level::level_enum level = spdlog::level::debug;
-					std::string pattern = "%Y-%m-%d %T.%f %z [%^%l%$] %v";
-					bool stdout_enabled = true;
-					std::string file;
+					spdlog::level::level_enum level = spdlog::level::debug;		/*!< Loglevel of access logs */
+					std::string pattern = "%Y-%m-%d %T.%f %z [%^%l%$] %v";		/*!< Log pattern of access logs. See spdlog manual for details */
+					bool stdout_enabled = true;					/*!< Log to standard output */
+					std::string file;						/*!< File path to log to. Disabled if unset */
 				} access;
 			} logging;
 
 			struct connection {
-				uint16_t timeout_seconds = 60;
+				uint16_t timeout_seconds = 60;						/*!< Connection timeout in seconds */
 			} connection;
 
 			struct app {
-				bool catch_unhandled_exception = true;
+
 			} app;
 		} config;
 
@@ -102,34 +99,135 @@ namespace Marisa {
 
 		static void ignore_sigpipe();
 
-		void listen(uint16_t __port, bool ipv6_enabled = 1);
-		void listen_v4(const std::string &__address, uint16_t __port);
-		void listen_v6(const std::string &__address, uint16_t __port);
+		/**
+		 * Listen on specified port.
+		 *
+		 * @param port The port to listen on.
+		 * @param ipv6_enabled Enable IPv6 (dual stack).
+		 *
+		 */
+		void listen(uint16_t port, bool ipv6_enabled = 1);
 
+		/**
+		 * Listen on specified IPv4 address.
+		 *
+		 * @param address Address in string form. e.g. "0.0.0.0"
+		 * @param port Port. e.g. 8080
+		 *
+		 */
+		void listen_v4(const std::string &address, uint16_t port);
+
+		/**
+		 * Listen on specified IPv6 address.
+		 *
+		 * @param address Address in string form. e.g. "::"
+		 * @param port Port. e.g. 8080
+		 *
+		 */
+		void listen_v6(const std::string &address, uint16_t port);
+
+		/**
+		 * Set HTTPS certificate (string form).
+		 *
+		 * @param str PEM certificate in string form.
+		 *
+		 */
 		void set_https_cert(const std::string& str);
+
+		/**
+		 * Set HTTPS certificate (file).
+		 *
+		 * @param path Path to a PEM certificate.
+		 *
+		 */
 		void set_https_cert_file(const std::string& path);
+
+		/**
+		 * Set HTTPS private key (string form).
+		 *
+		 * @param str Private key in string form.
+		 *
+		 */
 		void set_https_key(const std::string& str);
+
+		/**
+		 * Set HTTPS private key (file).
+		 *
+		 * @param path Path to a private key.
+		 *
+		 */
 		void set_https_key_file(const std::string& path);
+
+		/**
+		 * Set password of the HTTPS private key.
+		 *
+		 * @param str Password of the HTTPS private key.
+		 *
+		 */
 		void set_https_key_passwd(const std::string& str);
+
+
 		void set_https_trust(const std::string& str);
 		void set_https_trust_file(const std::string& path);
 
-		Route &route(const std::string &__route);
-		Route &route(std::regex __route_regex);
+		/**
+		 * Add a route denoted by a glob or path expression.
+		 *
+		 * e.g. "/file/*", "/user/:id".
+		 * You can access the variables from request->url_vars() .
+		 * For the global route, use a single asterisk ("*").
+		 *
+		 * @param expression Route expression.
+		 * \return Created route object.
+		 *
+		 */
+		Route &route(const std::string &expression);
 
+		/**
+		 * Add a route denoted by a regular expression object.
+		 *
+		 * You can access the captured strings from requests->url_vars() .
+		 *
+		 * @param regexp Regular expression object.
+		 * \return Created route object.
+		 *
+		 */
+		Route &route(std::regex regexp);
 
+		/**
+		 * Start the server.
+		 *
+		 * @param io_thread_count Threads used for network I/O handling. -1 for auto detect.
+		 *
+		 */
 		void start(ssize_t io_thread_count = -1);
 
+		/**
+		 * Stop the server.
+		 *
+		 */
 		void stop();
 
+		/**
+		 * Registered routes on this App.
+		 *
+		 */
 		std::vector<std::pair<std::regex, std::shared_ptr<Route>>>& routes() noexcept {
 			return route_mapping;
 		}
 
+		/**
+		 * Global route on this App.
+		 *
+		 */
 		std::shared_ptr<Route>& route_global() noexcept {
 			return route_global_;
 		}
 
+		/**
+		 * Thread pool of this App.
+		 *
+		 */
 		ThreadPool& app_thread_pool() noexcept {
 			return *app_thread_pool_;
 		}
