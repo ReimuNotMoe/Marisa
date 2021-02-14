@@ -60,7 +60,10 @@ void Response::finish_time_measure(MHD_Response *resp) {
 bool Response::streamed() const noexcept {
 	auto *ctx = (Context *)context;
 
-	return ctx->route->mode_streamed;
+	if (ctx->route)
+		return ctx->route->mode_streamed;
+	else
+		return false;
 }
 
 void Response::write(const void *buf, size_t len) {
@@ -204,10 +207,16 @@ void Response::end() {
 
 			logger->debug(R"([{} @ {:x}] end in stream mode)", ModuleName, (intptr_t)this);
 		} else {
-			auto resp = MHD_create_response_from_buffer(output_buffer.size(), output_buffer.memory(), MHD_RESPMEM_MUST_FREE);
+			MHD_Response *resp = nullptr;
+			if (output_buffer.size())
+				resp = MHD_create_response_from_buffer(output_buffer.size(), output_buffer.memory(), MHD_RESPMEM_MUST_FREE);
+			else
+				resp = MHD_create_response_from_buffer(0, (void *)"", MHD_RESPMEM_PERSISTENT);
+
 			for (auto &it : header) {
 				MHD_add_response_header(resp, it.first.c_str(), it.second.c_str());
 			}
+
 			finish_time_measure(resp);
 			MHD_queue_response(((Context *) context)->mhd_conn, status, resp);
 			MHD_destroy_response(resp);

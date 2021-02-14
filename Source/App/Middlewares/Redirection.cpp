@@ -17,4 +17,5 @@ using namespace Marisa::Middlewares;
 void Redirection::handler() {
 	response->header["Location"] = std::move(location);
 	response->status = status_code;
+	response->end();
 }

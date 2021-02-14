@@ -87,6 +87,11 @@ void Context::app_container() noexcept {
 				break;
 			}
 		}
+
+		if (!static_cast<ResponseExposed &>(response).finalized) {
+			logger->warn(R"([{} @ {:x}] response still not finalized after going through all middlewares)", ModuleName, (intptr_t)this);
+			static_cast<ResponseExposed &>(response).end();
+		}
 	} catch (std::exception &e) {
 		logger->error("[{} @ {:x}] uncaught exception in middleware #{} at {:x}: {}", ModuleName, (intptr_t) this, current_middleware,
 			      (intptr_t)route->middlewares[current_middleware].get(), e.what());

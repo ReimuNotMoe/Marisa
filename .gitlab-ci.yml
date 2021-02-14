@@ -1,32 +1,34 @@
-image: ubuntu:18.04
+image: ubuntu:20.04
 
 stages:
-  - build_coverage
+  - build
   - test
 #  - package
 
-build_coverage:
-  stage: build_coverage
+build:
+  stage: build
   before_script:
-    - apt-get update && apt-get -y install git build-essential cmake libboost-all-dev libssl-dev zlib1g-dev
+    - apt-get update
+    - DEBIAN_FRONTEND=noninteractive apt-get -yq install git build-essential cmake libmicrohttpd-dev zlib1g-dev
     - git submodule sync --recursive
     - git submodule update --init --recursive
   artifacts:
     untracked: true
   script:
-    - cd Source && mkdir build && cd build && cmake -DCMAKE_BUILD_TYPE=Debug -DCMAKE_CXX_FLAGS='-O0 -g -pg -fprofile-arcs -ftest-coverage' -DCMAKE_EXE_LINKER_FLAGS=-pg -DCMAKE_SHARED_LINKER_FLAGS=-pg .. && make
+    - mkdir build && cd build && cmake -DCMAKE_BUILD_TYPE=Debug -DCMAKE_CXX_FLAGS='-O0 -g -pg -fprofile-arcs -ftest-coverage' -DCMAKE_EXE_LINKER_FLAGS=-pg -DCMAKE_SHARED_LINKER_FLAGS=-pg .. && make
 
-test:
+coverage:
   stage: test
   before_script:
-    - apt-get update && apt-get -y install lcov curl libboost-all-dev libssl-dev zlib1g-dev netcat-openbsd ssl-cert
+    - apt-get update
+    - DEBIAN_FRONTEND=noninteractive apt-get -yq install lcov curl libmicrohttpd-dev libssl-dev zlib1g-dev netcat-openbsd ssl-cert
   dependencies:
-    - build_coverage
+    - build
   artifacts:
     untracked: true
   script:
-    - cd Source/build
-    - sh -c './test_Coverage'
+    - cd build
+    - sh -c './CoverageTest'
     - lcov -d . -c --output-file app-raw.info
     - lcov --remove app-raw.info '/usr/include/*' -o app.info
     - lcov -l app.info

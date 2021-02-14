@@ -187,7 +187,7 @@ public:
 		ss << "<hr>Marisa/" << MARISA_VERSION << "\n";
 		ss << "</body></html>";
 
-		response->send(std::move(ss.str()));
+		response->send(ss.str());
 //		response->end();
 	}
 };

@@ -66,10 +66,10 @@ add_library(marisa ${SOURCE_FILES})
 target_include_directories(marisa INTERFACE Source/)
 target_link_libraries(marisa pthread z fmt cpp-base64X IODash ReGlob ${LIBMICROHTTPD_LIBRARIES})
 
-#add_executable(test_Coverage Tests/coverage.cpp)
-#target_link_libraries(test_Coverage marisa gcov)
-#
-#add_test(NAME Coverage COMMAND test_Coverage)
+add_executable(CoverageTest Tests/coverage.cpp)
+target_link_libraries(CoverageTest marisa gcov)
+
+add_test(NAME Coverage COMMAND CoverageTest)
 
 add_executable(example_Hello Examples/hello.cpp)
 target_link_libraries(example_Hello marisa)
