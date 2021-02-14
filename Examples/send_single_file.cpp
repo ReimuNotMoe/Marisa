@@ -10,26 +10,17 @@
     MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
 */
 
-#include "../Marisa.hpp"
+#include <Marisa.hpp>
 
 using namespace Marisa;
-using namespace Middlewares;
 
 int main() {
 	App myapp;
 
-	myapp.route("/").stream().use([](auto *req, auto *rsp, auto *ctx){
-		rsp->write("<html><head>"
-			  "<meta http-equiv=\"content-type\" content=\"text/html; charset=UTF-8\">"
-			  "<title>Hello Marisa!</title>"
-			  "</head>"
-			  "<body>");
+	myapp.route("/").use([](auto *req, Response *rsp, auto *ctx){
+		rsp->header["Content-Type"] = "text/plain";
 
-		rsp->write("<h1>Hello Marisa!</h1>"
-			  "</body>"
-			  "</html>");
-
-		rsp->end();
+		rsp->send_file("/etc/fstab");
 	});
 
 	myapp.listen(8080);

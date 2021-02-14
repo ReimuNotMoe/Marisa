@@ -11,7 +11,7 @@
 */
 
 #include <iostream>
-#include "../Marisa.hpp"
+#include <Marisa.hpp>
 
 using namespace Marisa;
 using namespace Marisa::Middlewares;

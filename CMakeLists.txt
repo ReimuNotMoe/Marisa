@@ -52,34 +52,10 @@ CPMAddPackage(
         VERSION 0.0.2
 )
 
-include(cmake/Findlibmicrohttpd.cmake)
+include(CMake/FindMHD.cmake)
 
-set(SOURCE_FILES
+file(GLOB_RECURSE SOURCE_FILES "Source/*.cpp" "Source/*.hpp")
 
-        Marisa.hpp Version.hpp
-
-        CommonIncludes.hpp
-
-        App/Buffer.cpp App/Buffer.hpp
-        App/App.cpp App/App.hpp App/Route.cpp App/Route.hpp App/Context.cpp App/Context.hpp
-
-        App/Request.cpp App/Request.hpp
-        App/Response.hpp App/Response.cpp
-        App/Middleware.cpp App/Middleware.hpp
-
-        App/Middlewares/Middlewares.hpp App/Middlewares/CommonIncludes.hpp
-        App/Middlewares/StaticFiles.cpp App/Middlewares/StaticFiles.hpp
-        App/Middlewares/Redirection.cpp App/Middlewares/Redirection.hpp
-        App/Middlewares/Simple.cpp App/Middlewares/Simple.hpp
-        App/Middlewares/Lambda.cpp App/Middlewares/Lambda.hpp
-        App/Middlewares/Websocket.cpp App/Middlewares/Websocket.hpp
-
-        Util/Util.cpp Util/Util.hpp
-        Util/MimeTypes.cpp Util/DefaultStatusPage.cpp Util/JSDate.cpp
-
-        Util/URLEncode.cpp App/Middlewares/Dashboard.cpp App/Middlewares/Dashboard.hpp)
-
-#include_directories(${IODash_SOURCE_DIR})
 include_directories(${LIBMICROHTTPD_INCLUDE_DIR})
 include_directories(${fmt_SOURCE_DIR}/include)
 include_directories(${spdlog_SOURCE_DIR}/include)
@@ -87,7 +63,7 @@ include_directories(${ThreadPool_SOURCE_DIR})
 include_directories(${cpp-base64X_SOURCE_DIR})
 
 add_library(marisa ${SOURCE_FILES})
-
+target_include_directories(marisa INTERFACE Source/)
 target_link_libraries(marisa pthread z fmt cpp-base64X IODash ReGlob ${LIBMICROHTTPD_LIBRARIES})
 
 #add_executable(test_Coverage Tests/coverage.cpp)

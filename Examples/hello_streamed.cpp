@@ -10,30 +10,29 @@
     MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
 */
 
-#include "../Marisa.hpp"
+#include <Marisa.hpp>
 
 using namespace Marisa;
+using namespace Middlewares;
 
 int main() {
 	App myapp;
 
-	myapp.route("/").use([](auto *req, auto *rsp, auto *ctx){
-		rsp->send("<html><head>"
+	myapp.route("/").stream().use([](auto *req, auto *rsp, auto *ctx){
+		rsp->write("<html><head>"
 			  "<meta http-equiv=\"content-type\" content=\"text/html; charset=UTF-8\">"
 			  "<title>Hello Marisa!</title>"
 			  "</head>"
-			  "<body>"
-			  "<h1>Hello Marisa!</h1>"
+			  "<body>");
+
+		rsp->write("<h1>Hello Marisa!</h1>"
 			  "</body>"
 			  "</html>");
+
+		rsp->end();
 	});
 
-	myapp.listen(8443);
-
-	// Install the `ssl-cert' package to get them
-	myapp.set_https_cert_file("/etc/ssl/certs/ssl-cert-snakeoil.pem");
-	myapp.set_https_key_file("/etc/ssl/private/ssl-cert-snakeoil.key");
-
+	myapp.listen(8080);
 	myapp.start();
 
 	while (1) {

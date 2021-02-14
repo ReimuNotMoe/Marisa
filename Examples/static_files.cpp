@@ -10,23 +10,18 @@
     MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
 */
 
-#include "../Marisa.hpp"
+
+#include <Marisa.hpp>
 
 using namespace Marisa;
+using namespace Middlewares;
 
 int main() {
 	App myapp;
 
-	myapp.route("/").use([](auto *req, auto *rsp, auto *ctx){
-		rsp->send("<html><head>"
-			  "<meta http-equiv=\"content-type\" content=\"text/html; charset=UTF-8\">"
-			  "<title>Hello Marisa!</title>"
-			  "</head>"
-			  "<body>"
-			  "<h1>Hello Marisa!</h1>"
-			  "</body>"
-			  "</html>");
-	});
+	myapp.route("/files/**").use(StaticFiles("/tmp", true));
+
+//	myapp.route("/files").on("*").use(Redirection("/files/", 301));
 
 	myapp.listen(8080);
 	myapp.start();

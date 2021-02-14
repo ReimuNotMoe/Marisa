@@ -16,7 +16,7 @@
     along with this program.  If not, see <https://www.gnu.org/licenses/>.
 */
 
-#include "../Marisa.hpp"
+#include <Marisa.hpp>
 
 using namespace Marisa;
 using namespace Marisa::Middlewares;
