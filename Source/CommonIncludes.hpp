@@ -42,6 +42,11 @@
 #include <sys/poll.h>
 
 #include <microhttpd.h>
+
+#if MHD_VERSION < 0x00097001
+#define MHD_Result int
+#endif
+
 #include <gcrypt.h>
 
 #include <IODash.hpp>
