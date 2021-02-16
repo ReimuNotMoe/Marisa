@@ -175,8 +175,8 @@ int main() {
 		response->send(ss.str());
 	};
 
-	myapp.route("/:foo/:bar/**").use(func);
-	myapp.route("/**").use(func);
+	myapp.route("/:foo/:bar/**").async().use(func);
+	myapp.route("/**").async().use(func);
 
 	myapp.listen(8080);
 	myapp.start();

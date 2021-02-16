@@ -18,8 +18,7 @@
 
 using namespace Marisa;
 
-#define logger		((Context *)context)->app->logger_internal
-#define logger_sf	((Context *)(((Request *)cls)->context))->app->logger_internal
+#define logger		((Context *)context)->logger
 
 static const char ModuleName[] = "Request";
 
@@ -47,7 +46,7 @@ Request::PostData Request::post(const std::string &key) {
 
 const std::unordered_map<std::string_view, std::string_view> &Request::header() {
 	if (header_cache.empty()) {
-		MHD_get_connection_values(((Context *)context)->mhd_conn, MHD_HEADER_KIND, &mhd_header_cb, this);
+		MHD_get_connection_values(((ContextExposed *)context)->mhd_conn, MHD_HEADER_KIND, &mhd_header_cb, this);
 	}
 
 	return header_cache;
@@ -55,7 +54,7 @@ const std::unordered_map<std::string_view, std::string_view> &Request::header() 
 
 std::string_view Request::header(const std::string& key) {
 	if (header_cache.empty()) {
-		MHD_get_connection_values(((Context *)context)->mhd_conn, MHD_HEADER_KIND, &mhd_header_cb, this);
+		MHD_get_connection_values(((ContextExposed *)context)->mhd_conn, MHD_HEADER_KIND, &mhd_header_cb, this);
 	}
 
 	auto it = header_cache.find(key);
@@ -68,7 +67,7 @@ std::string_view Request::header(const std::string& key) {
 
 const std::vector<std::string_view> &Request::header_keys() {
 	if (header_keys_cache.empty()) {
-		MHD_get_connection_values(((Context *)context)->mhd_conn, MHD_HEADER_KIND, &mhd_header_key_cb, this);
+		MHD_get_connection_values(((ContextExposed *)context)->mhd_conn, MHD_HEADER_KIND, &mhd_header_key_cb, this);
 	}
 
 	return header_keys_cache;
@@ -76,7 +75,7 @@ const std::vector<std::string_view> &Request::header_keys() {
 
 const std::unordered_map<std::string_view, std::string_view> &Request::query() {
 	if (query_cache.empty()) {
-		MHD_get_connection_values(((Context *)context)->mhd_conn, MHD_GET_ARGUMENT_KIND, &mhd_query_cb, this);
+		MHD_get_connection_values(((ContextExposed *)context)->mhd_conn, MHD_GET_ARGUMENT_KIND, &mhd_query_cb, this);
 	}
 
 	return query_cache;
@@ -84,7 +83,7 @@ const std::unordered_map<std::string_view, std::string_view> &Request::query() {
 
 std::string_view Request::query(const std::string &key) {
 	if (query_cache.empty()) {
-		MHD_get_connection_values(((Context *)context)->mhd_conn, MHD_GET_ARGUMENT_KIND, &mhd_query_cb, this);
+		MHD_get_connection_values(((ContextExposed *)context)->mhd_conn, MHD_GET_ARGUMENT_KIND, &mhd_query_cb, this);
 	}
 
 	auto it = query_cache.find(key);
@@ -97,7 +96,7 @@ std::string_view Request::query(const std::string &key) {
 
 const std::vector<std::string_view> &Request::query_keys() {
 	if (query_keys_cache.empty()) {
-		MHD_get_connection_values(((Context *)context)->mhd_conn, MHD_GET_ARGUMENT_KIND, &mhd_query_key_cb, this);
+		MHD_get_connection_values(((ContextExposed *)context)->mhd_conn, MHD_GET_ARGUMENT_KIND, &mhd_query_key_cb, this);
 	}
 
 	return query_keys_cache;
@@ -105,7 +104,7 @@ const std::vector<std::string_view> &Request::query_keys() {
 
 const std::unordered_map<std::string_view, std::string_view> &Request::cookie() {
 	if (cookie_cache.empty()) {
-		MHD_get_connection_values(((Context *)context)->mhd_conn, MHD_COOKIE_KIND, &mhd_cookie_cb, this);
+		MHD_get_connection_values(((ContextExposed *)context)->mhd_conn, MHD_COOKIE_KIND, &mhd_cookie_cb, this);
 	}
 
 	return cookie_cache;
@@ -113,7 +112,7 @@ const std::unordered_map<std::string_view, std::string_view> &Request::cookie() 
 
 std::string_view Request::cookie(const std::string &key) {
 	if (cookie_cache.empty()) {
-		MHD_get_connection_values(((Context *)context)->mhd_conn, MHD_COOKIE_KIND, &mhd_cookie_cb, this);
+		MHD_get_connection_values(((ContextExposed *)context)->mhd_conn, MHD_COOKIE_KIND, &mhd_cookie_cb, this);
 	}
 
 	auto it = cookie_cache.find(key);
@@ -126,7 +125,7 @@ std::string_view Request::cookie(const std::string &key) {
 
 const std::vector<std::string_view> &Request::cookie_keys() {
 	if (cookie_keys_cache.empty()) {
-		MHD_get_connection_values(((Context *)context)->mhd_conn, MHD_COOKIE_KIND, &mhd_cookie_key_cb, this);
+		MHD_get_connection_values(((ContextExposed *)context)->mhd_conn, MHD_COOKIE_KIND, &mhd_cookie_key_cb, this);
 	}
 
 	return cookie_keys_cache;
@@ -134,7 +133,7 @@ const std::vector<std::string_view> &Request::cookie_keys() {
 
 const SocketAddress<AddressFamily::Any>& Request::socket_address() {
 	if (socket_address_cache.family() != AddressFamily::IPv4 && socket_address_cache.family() != AddressFamily::IPv6) {
-		auto *sa = MHD_get_connection_info(((Context *) context)->mhd_conn,MHD_CONNECTION_INFO_CLIENT_ADDRESS)->client_addr;
+		auto *sa = MHD_get_connection_info(((ContextExposed *) context)->mhd_conn,MHD_CONNECTION_INFO_CLIENT_ADDRESS)->client_addr;
 
 		if (sa->sa_family == AF_INET) {
 			memcpy(socket_address_cache.raw(), sa, sizeof(sockaddr_in));
@@ -151,7 +150,7 @@ bool Request::read_post(
 	post_callback_ptr = &callback;
 
 	if (!mhd_pp)
-		mhd_pp = MHD_create_post_processor(((Context *)context)->mhd_conn, 4096, &mhd_streamed_post_processor, this);
+		mhd_pp = MHD_create_post_processor(((ContextExposed *)context)->mhd_conn, 4096, &mhd_streamed_post_processor, this);
 
 	auto buf = read();
 	if (buf.empty()) {
@@ -192,7 +191,7 @@ std::vector<uint8_t> Request::read() {
 			if (errno == EAGAIN || errno == EWOULDBLOCK || errno == ERESTART) {
 				input_sp.second.set_nonblocking(false);
 
-				((Context *) context)->resume_connection();
+				((ContextExposed *) context)->resume_connection();
 //				std::this_thread::yield();
 			} else {
 				ret.resize(0);
@@ -213,9 +212,10 @@ Request::~Request() {
 
 MHD_Result Request::mhd_header_cb(void *cls, enum MHD_ValueKind kind, const char *key, const char *value) {
 	auto *ctx = (Request *)cls;
+	auto *context = ctx->context;
 
-	logger_sf->trace("[{} @ {:x}] mhd_cookie_key_cb: kind: {}, key: {}@{}, value: {}@{}",
-			 ModuleName, (intptr_t)ctx, kind, key, (intptr_t)key, value, (intptr_t)value);
+	logger->trace("[{} @ {:x}] mhd_cookie_key_cb: kind: {}, key: {}@{}, value: {}@{}",
+		      ModuleName, (intptr_t)ctx, kind, key, (intptr_t)key, value, (intptr_t)value);
 
 	ctx->header_cache.insert({key, value});
 
@@ -224,8 +224,9 @@ MHD_Result Request::mhd_header_cb(void *cls, enum MHD_ValueKind kind, const char
 
 MHD_Result Request::mhd_header_key_cb(void *cls, enum MHD_ValueKind kind, const char *key, const char *value) {
 	auto *ctx = (Request *)cls;
+	auto *context = ctx->context;
 
-	logger_sf->trace("[{} @ {:x}] mhd_header_key_cb: kind: {}, key: {}@{}, value: {}@{}",
+	logger->trace("[{} @ {:x}] mhd_header_key_cb: kind: {}, key: {}@{}, value: {}@{}",
 			 ModuleName, (intptr_t)ctx, kind, key, (intptr_t)key, value, (intptr_t)value);
 
 	ctx->header_keys_cache.emplace_back(key);
@@ -235,8 +236,9 @@ MHD_Result Request::mhd_header_key_cb(void *cls, enum MHD_ValueKind kind, const 
 
 MHD_Result Request::mhd_query_cb(void *cls, enum MHD_ValueKind kind, const char *key, const char *value) {
 	auto *ctx = (Request *)cls;
+	auto *context = ctx->context;
 
-	logger_sf->trace("[{} @ {:x}] mhd_query_cb: kind: {}, key: {}@{}, value: {}@{}",
+	logger->trace("[{} @ {:x}] mhd_query_cb: kind: {}, key: {}@{}, value: {}@{}",
 			 ModuleName, (intptr_t)ctx, kind, key, (intptr_t)key, value, (intptr_t)value);
 
 	ctx->query_cache.insert({key, value});
@@ -246,8 +248,9 @@ MHD_Result Request::mhd_query_cb(void *cls, enum MHD_ValueKind kind, const char 
 
 MHD_Result Request::mhd_query_key_cb(void *cls, enum MHD_ValueKind kind, const char *key, const char *value) {
 	auto *ctx = (Request *)cls;
+	auto *context = ctx->context;
 
-	logger_sf->trace("[{} @ {:x}] mhd_query_key_cb: kind: {}, key: {}@{}, value: {}@{}",
+	logger->trace("[{} @ {:x}] mhd_query_key_cb: kind: {}, key: {}@{}, value: {}@{}",
 			 ModuleName, (intptr_t)ctx, kind, key, (intptr_t)key, value, (intptr_t)value);
 
 	ctx->query_keys_cache.emplace_back(key);
@@ -257,8 +260,9 @@ MHD_Result Request::mhd_query_key_cb(void *cls, enum MHD_ValueKind kind, const c
 
 MHD_Result Request::mhd_cookie_cb(void *cls, enum MHD_ValueKind kind, const char *key, const char *value) {
 	auto *ctx = (Request *)cls;
+	auto *context = ctx->context;
 
-	logger_sf->trace("[{} @ {:x}] mhd_cookie_cb: kind: {}, key: {}@{}, value: {}@{}",
+	logger->trace("[{} @ {:x}] mhd_cookie_cb: kind: {}, key: {}@{}, value: {}@{}",
 			 ModuleName, (intptr_t)ctx, kind, key, (intptr_t)key, value, (intptr_t)value);
 
 	ctx->cookie_cache.insert({key, value});
@@ -268,8 +272,9 @@ MHD_Result Request::mhd_cookie_cb(void *cls, enum MHD_ValueKind kind, const char
 
 MHD_Result Request::mhd_cookie_key_cb(void *cls, enum MHD_ValueKind kind, const char *key, const char *value) {
 	auto *ctx = (Request *)cls;
+	auto *context = ctx->context;
 
-	logger_sf->trace("[{} @ {:x}] mhd_cookie_key_cb: kind: {}, key: {}@{}, value: {}@{}",
+	logger->trace("[{} @ {:x}] mhd_cookie_key_cb: kind: {}, key: {}@{}, value: {}@{}",
 			 ModuleName, (intptr_t)ctx, kind, key, (intptr_t)key, value, (intptr_t)value);
 
 	ctx->cookie_keys_cache.emplace_back(key);
@@ -280,6 +285,7 @@ MHD_Result Request::mhd_cookie_key_cb(void *cls, enum MHD_ValueKind kind, const 
 MHD_Result
 Request::mhd_post_processor(void *cls, enum MHD_ValueKind kind, const char *key, const char *filename, const char *content_type, const char *transfer_encoding, const char *data, uint64_t off, size_t size) {
 	auto *ctx = (Request *)cls;
+	auto *context = ctx->context;
 
 	if (key) {
 		if (!ctx->post_keys_cache.empty() && ctx->post_keys_cache.back() != key) {
@@ -298,7 +304,7 @@ Request::mhd_post_processor(void *cls, enum MHD_ValueKind kind, const char *key,
 			pd.transfer_encoding = transfer_encoding;
 	}
 
-	logger_sf->trace("[{} @ {:x}] mhd_post_processor: kind: {}, key: {}, filename: {}, content_type: {}, transfer_encoding: {}, data: {}, off: {}, size: {}",
+	logger->trace("[{} @ {:x}] mhd_post_processor: kind: {}, key: {}, filename: {}, content_type: {}, transfer_encoding: {}, data: {}, off: {}, size: {}",
 			 ModuleName, (intptr_t)ctx, kind, key, filename, content_type, transfer_encoding, data, off, size);
 
 
@@ -308,7 +314,7 @@ Request::mhd_post_processor(void *cls, enum MHD_ValueKind kind, const char *key,
 MHD_Result Request::mhd_streamed_post_processor(void *cls, enum MHD_ValueKind kind, const char *key, const char *filename, const char *content_type, const char *transfer_encoding,
 						const char *data, uint64_t off, size_t size) {
 	auto *ctx = (Request *)cls;
-
+	auto *context = ctx->context;
 
 	(*ctx->post_callback_ptr)(key ? key : std::string_view(),
 				  size ? std::string_view(data, size) : std::string_view(),
@@ -316,14 +322,9 @@ MHD_Result Request::mhd_streamed_post_processor(void *cls, enum MHD_ValueKind ki
 				  content_type ? content_type : std::string_view(),
 				  transfer_encoding ? transfer_encoding : std::string_view());
 
-	logger_sf->trace("[{} @ {:x}] mhd_streamed_post_processor: kind: {}, key: {}, filename: {}, content_type: {}, transfer_encoding: {}, data: {}, off: {}, size: {}",
+	logger->trace("[{} @ {:x}] mhd_streamed_post_processor: kind: {}, key: {}, filename: {}, content_type: {}, transfer_encoding: {}, data: {}, off: {}, size: {}",
 			 ModuleName, (intptr_t)ctx, kind, key, filename, content_type, transfer_encoding, data, off, size);
 
 
 	return MHD_YES;
 }
-
-
-
-
-

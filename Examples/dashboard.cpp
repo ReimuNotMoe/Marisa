@@ -24,7 +24,7 @@ using namespace Marisa::Middlewares;
 int main() {
 	App myapp;
 
-	myapp.route("/").use(Dashboard());
+	myapp.route("/").async().use(Dashboard());
 
 	myapp.listen(8080);
 	myapp.start();

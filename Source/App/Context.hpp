@@ -34,36 +34,25 @@ namespace Marisa {
 
 	class Context {
 	protected:
-		bool process_halted = false;
-	public:
+		// Global contexts
 		App *app = nullptr;
 		RouteExposed *route = nullptr;
-
-		spdlog::logger *logger = nullptr;
-
 		struct MHD_Connection *mhd_conn = nullptr;
+
+		// Connection states
 		bool conn_suspended = false;
 		std::mutex conn_state_lock;
-
 		size_t processed_post_size = 0;
-
-		bool app_started = false;
-
-		size_t current_middleware_index = 0;
-		std::function<void(Request *, Response *, Context *)> current_middleware;
-
-		std::future<void> app_future;
-
-		/**
-		 * Check if current route is streamed.
-		 *
-		 * @return true for streamed.
-		 *
-		 */
-		bool streamed() const noexcept;
-
 		bool streamed_response_done = false;
 
+		// Middleware execution states
+		bool app_started = false;
+		bool process_halted = false;
+		size_t current_middleware_index = 0;
+		std::function<void(Request *, Response *, Context *)> current_middleware;
+		std::future<void> app_future;
+
+	protected:
 		void suspend_connection();
 		void resume_connection();
 
@@ -75,6 +64,15 @@ namespace Marisa {
 		void wait_app_terminate();
 
 		void process_request();
+
+	public:
+		/**
+		 * Check if current route is streamed.
+		 *
+		 * @return true for streamed.
+		 *
+		 */
+		bool streamed() const noexcept;
 
 		/**
 		 * Halt the processing of middleware chain.
@@ -104,6 +102,34 @@ namespace Marisa {
 		Request request;
 		Response response;
 
+		spdlog::logger *logger = nullptr;
+	};
+
+	class ContextExposed : public Context {
+	public:
+		using Context::app;
+		using Context::route;
+		using Context::logger;
+		using Context::mhd_conn;
+
+		using Context::conn_suspended;
+		using Context::conn_state_lock;
+		using Context::processed_post_size;
+		using Context::streamed_response_done;
+
+		using Context::app_started;
+		using Context::process_halted;
+		using Context::current_middleware_index;
+		using Context::current_middleware;
+		using Context::app_future;
+
+		using Context::suspend_connection;
+		using Context::resume_connection;
+		using Context::match_route;
+		using Context::app_container;
+		using Context::start_app;
+		using Context::wait_app_terminate;
+		using Context::process_request;
 	};
 
 

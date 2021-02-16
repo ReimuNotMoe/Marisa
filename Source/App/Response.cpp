@@ -15,7 +15,7 @@
 
 using namespace Marisa;
 
-#define logger	(((Context *)context)->app->logger_internal)
+#define logger	(((Context *)context)->logger)
 
 static const char ModuleName[] = "Response";
 
@@ -35,8 +35,9 @@ void Response::init() {
 void Response::mhd_upgrade_callback(void *cls, struct MHD_Connection *con, void *con_cls, const char *extra_in, size_t extra_in_size,
 				    MHD_socket sock, struct MHD_UpgradeResponseHandle *urh) {
 	auto *resp_ctx = (Response *)cls;
+	auto *context = con_cls;
 
-	(((Context *)resp_ctx->context)->app->logger_internal)->debug(R"([{} @ {:x}] mhd_upgrade_callback called)", ModuleName, (intptr_t)resp_ctx);
+	logger->debug(R"([{} @ {:x}] mhd_upgrade_callback called)", ModuleName, (intptr_t)resp_ctx);
 
 	resp_ctx->upgraded_connection = {urh, extra_in, extra_in_size, sock};
 }
@@ -58,7 +59,7 @@ void Response::finish_time_measure(MHD_Response *resp) {
 }
 
 bool Response::streamed() const noexcept {
-	auto *ctx = (Context *)context;
+	auto *ctx = (ContextExposed *)context;
 
 	if (ctx->route)
 		return ctx->route->mode_streamed;
@@ -95,7 +96,7 @@ void Response::write(const void *buf, size_t len) {
 					if (errno == EWOULDBLOCK || errno == EAGAIN || errno == ERESTART) {
 						logger->debug(R"([{} @ {:x}] write EAGAIN, resume_connection)", ModuleName, (intptr_t)this);
 
-						((Context *) context)->resume_connection();
+						((ContextExposed *) context)->resume_connection();
 						std::this_thread::yield();
 					} else {
 						logger->error(R"([{} @ {:x}] write errno: {})", ModuleName, (intptr_t)this, errno);
@@ -136,6 +137,8 @@ void Response::send_status_page(int code) {
 }
 
 void Response::send_persistent(const void *buf, size_t len) {
+	auto *ctx = (ContextExposed *)context;
+
 	if (!finalized) {
 		if (streamed()) {
 			throw std::logic_error("send_persistent can't be used in streamed mode");
@@ -145,9 +148,9 @@ void Response::send_persistent(const void *buf, size_t len) {
 				MHD_add_response_header(resp, it.first.c_str(), it.second.c_str());
 			}
 			finish_time_measure(resp);
-			MHD_queue_response(((Context *) context)->mhd_conn, status, resp);
+			MHD_queue_response(ctx->mhd_conn, status, resp);
 			MHD_destroy_response(resp);
-			((Context *) context)->resume_connection();
+			ctx->resume_connection();
 			finalized = true;
 		}
 	} else {
@@ -160,6 +163,8 @@ void Response::send_persistent(const char *buf) {
 }
 
 void Response::send_file(std::string_view path) {
+	auto *ctx = (ContextExposed *)context;
+
 	if (!finalized) {
 		if (streamed()) {
 			throw std::logic_error("send_file can't be used in streamed mode");
@@ -175,9 +180,9 @@ void Response::send_file(std::string_view path) {
 					MHD_add_response_header(resp, it.first.c_str(), it.second.c_str());
 				}
 				finish_time_measure(resp);
-				MHD_queue_response(((Context *) context)->mhd_conn, status, resp);
+				MHD_queue_response(ctx->mhd_conn, status, resp);
 				MHD_destroy_response(resp);
-				((Context *) context)->resume_connection();
+				ctx->resume_connection();
 
 				finalized = true;
 			} else {
@@ -192,15 +197,16 @@ void Response::send_file(std::string_view path) {
 
 void Response::end() {
 	using namespace std::chrono_literals;
+	auto *ctx = (ContextExposed *)context;
 
 	if (!finalized) {
 		if (streamed()) {
 			output_sp.second.close();
 
 			size_t rcnt = 0;
-			while (!((Context *) context)->streamed_response_done) {
+			while (!ctx->streamed_response_done) {
 				logger->debug(R"([{} @ {:x}] poll response_done {} times)", ModuleName, (intptr_t)this, rcnt);
-				((Context *) context)->resume_connection();
+				ctx->resume_connection();
 				std::this_thread::sleep_for(std::chrono::milliseconds((int)pow(2, rcnt)));
 				rcnt++;
 			}
@@ -218,11 +224,11 @@ void Response::end() {
 			}
 
 			finish_time_measure(resp);
-			MHD_queue_response(((Context *) context)->mhd_conn, status, resp);
+			MHD_queue_response(ctx->mhd_conn, status, resp);
 			MHD_destroy_response(resp);
 
 
-			((Context *) context)->resume_connection();
+			ctx->resume_connection();
 
 			logger->debug(R"([{} @ {:x}] end in normal mode)", ModuleName, (intptr_t)this);
 		}
@@ -235,6 +241,8 @@ void Response::end() {
 }
 
 void Response::upgrade() {
+	auto *ctx = (ContextExposed *)context;
+
 	if (!finalized) {
 		if (streamed()) {
 			throw std::logic_error("upgrade can't be used in streamed mode");
@@ -244,9 +252,9 @@ void Response::upgrade() {
 				MHD_add_response_header(resp, it.first.c_str(), it.second.c_str());
 			}
 			finish_time_measure(resp);
-			MHD_queue_response(((Context *) context)->mhd_conn, status, resp);
+			MHD_queue_response(ctx->mhd_conn, status, resp);
 			MHD_destroy_response(resp);
-			((Context *) context)->resume_connection();
+			ctx->resume_connection();
 
 			finalized = true;
 		}

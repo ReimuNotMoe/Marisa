@@ -37,7 +37,7 @@ bool Context::streamed() const noexcept {
 void Context::process_request() {
 	if (route) {
 		if (route->middlewares.empty()) {
-			logger->error("[{} @ {:x}] Route {}: No middlewares", ModuleName, (intptr_t)this, (intptr_t)route);
+			logger->error("[{} @ {:x}] Route {:x}: No middlewares", ModuleName, (intptr_t)this, (intptr_t)route);
 			response.send_status_page(500);
 			return;
 		} else {
@@ -65,8 +65,6 @@ void Context::start_app() {
 
 		app_started = true;
 	}
-//	app_thread = std::thread(&Context::app_container, this);
-//	app_thread.detach();
 }
 
 void Context::wait_app_terminate() {
@@ -81,6 +79,7 @@ void Context::app_container() noexcept {
 		// Check for previously halted middleware
 		if (current_middleware) {
 			// Run it again
+			logger->debug(R"([{} @ {:x}] middleware processing resumed)", ModuleName, (intptr_t)this);
 			current_middleware(&request, &response, this);
 
 			if (process_halted) { // It halted again
@@ -192,12 +191,13 @@ void Context::resume_connection() {
 
 void Context::suspend() {
 	process_halted = true;
+	logger->debug(R"([{} @ {:x}] user halted middleware processing)", ModuleName, (intptr_t)this);
 }
 
 void Context::resume() {
 	process_halted = false;
 	resume_connection();
-	logger->debug(R"([{} @ {:x}] middleware processing resumed)", ModuleName, (intptr_t)this);
+	logger->debug(R"([{} @ {:x}] user resumed middleware processing)", ModuleName, (intptr_t)this);
 }
 
 Context::~Context() {

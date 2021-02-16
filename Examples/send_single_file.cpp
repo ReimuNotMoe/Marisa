@@ -17,7 +17,7 @@ using namespace Marisa;
 int main() {
 	App myapp;
 
-	myapp.route("/").use([](auto *req, Response *rsp, auto *ctx){
+	myapp.route("/").async().use([](auto *req, Response *rsp, auto *ctx){
 		rsp->header["Content-Type"] = "text/plain";
 
 		rsp->send_file("/etc/fstab");

@@ -30,7 +30,6 @@ namespace Marisa {
 	public:
 		Route() = default;
 
-
 		Route &stream();
 		Route &async();
 

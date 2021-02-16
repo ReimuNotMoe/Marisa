@@ -19,8 +19,8 @@ using namespace Middlewares;
 int main() {
 	App myapp;
 
-	myapp.route("/files/**").use(StaticFiles("/tmp", true));
-	myapp.route("*").use(Redirection("/files/", 302));
+	myapp.route("/files/**").async().use(StaticFiles("/tmp", true));
+	myapp.route("*").async().use(Redirection("/files/", 302));
 
 	myapp.listen(8080);
 	myapp.start();

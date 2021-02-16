@@ -26,10 +26,6 @@ namespace Marisa {
 	class App {
 	public:
 		struct Config {
-			struct http {
-				size_t max_post_size = 128 * 1024;	/*!< Max size of POST data allowed in normal mode */
-			} http;
-
 			struct logging {
 				struct internal {
 					spdlog::level::level_enum level = spdlog::level::debug;		/*!< Loglevel of internal components */
@@ -48,20 +44,21 @@ namespace Marisa {
 
 			struct connection {
 				uint16_t timeout_seconds = 60;						/*!< Connection timeout in seconds */
+				size_t max_connections = 10485760;					/*!< Max allowed connections */
+				size_t max_post_size = 128 * 1024;					/*!< Max size of POST data allowed in normal mode */
 			} connection;
 
 			struct app {
-
+				size_t thread_pool_size_ratio = 6;					/*!< Use x threads for every processor core */
 			} app;
+
+			bool ignore_sigpipe = true;							/*!< Ignores SIGPIPE */
 		} config;
 
 		std::unique_ptr<spdlog::logger> logger_internal;
 		std::unique_ptr<spdlog::logger> logger_access;
 	protected:
 		int mhd_flags = MHD_ALLOW_SUSPEND_RESUME | MHD_USE_AUTO_INTERNAL_THREAD | MHD_ALLOW_UPGRADE | MHD_USE_ERROR_LOG | MHD_USE_DEBUG;
-
-		int mhd_extra_flags[8] = {MHD_OPTION_END};
-		void *mhd_extra_flag_values[8];
 
 		std::string https_cert, https_key, https_trust, https_key_passwd;
 
@@ -83,21 +80,17 @@ namespace Marisa {
 		void init();
 		void init_logger();
 	protected:
-		int mhd_flagslot_unused(int flag = MHD_OPTION_END);
-
-		void mhd_flagslot_set(int flag, void *val);
-
 		static MHD_Result mhd_connection_handler(void *cls, struct MHD_Connection *connection, const char *url, const char *method, const char *version, const char *upload_data,
 						  size_t *upload_data_size, void **con_cls);
 		static void mhd_request_completed(void *cls, struct MHD_Connection *connection, void **con_cls, enum MHD_RequestTerminationCode toe);
 
 		static ssize_t mhd_streamed_response_reader(void *cls, uint64_t pos, char *buf, size_t max);
 		static void mhd_streamed_response_read_done(void *cls);
+
+		static void ignore_sigpipe();
 	public:
 		App();
 		App(App::Config cfg);
-
-		static void ignore_sigpipe();
 
 		/**
 		 * Listen on specified port.

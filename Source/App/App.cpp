@@ -92,26 +92,6 @@ void App::init_logger() {
 	logger_access->set_level(config.logging.access.level);
 }
 
-int App::mhd_flagslot_unused(int flag) {
-	for (int i=0; i<(sizeof(mhd_extra_flags)/sizeof(int)); i++) {
-		if (mhd_extra_flags[i] == MHD_OPTION_END || mhd_extra_flags[i] == flag)
-			return i;
-	}
-
-	return -1;
-}
-
-void App::mhd_flagslot_set(int flag, void *val) {
-	int slot = mhd_flagslot_unused(flag);
-
-	if (slot != -1) {
-		mhd_extra_flags[slot] = flag;
-		mhd_extra_flag_values[slot] = val;
-	} else {
-		throw std::logic_error("No option slot left");
-	}
-}
-
 MHD_Result App::mhd_connection_handler(void *cls, struct MHD_Connection *connection, const char *url, const char *method, const char *version, const char *upload_data, size_t *upload_data_size, void **con_cls) {
 
 	auto *app = (App *)cls;
@@ -122,7 +102,7 @@ MHD_Result App::mhd_connection_handler(void *cls, struct MHD_Connection *connect
 		app->logger_internal->debug("[{} @ {:x}] first time", ModuleName, (intptr_t)app);
 
 		*con_cls = new Context(app, connection, url, method, version);
-		auto *ctx = (Context *)*con_cls;
+		auto *ctx = (ContextExposed *)*con_cls;
 
 		ctx->process_request();
 		app->logger_internal->debug("[{} @ {:x}] request processed", ModuleName, (intptr_t)app);
@@ -130,7 +110,7 @@ MHD_Result App::mhd_connection_handler(void *cls, struct MHD_Connection *connect
 	} else { // Second or more time
 		app->logger_internal->debug("[{} @ {:x}] second or more time", ModuleName, (intptr_t)app);
 
-		auto *ctx = (Context *)*con_cls;
+		auto *ctx = (ContextExposed *)*con_cls;
 
 		if (ctx->response.streamed()) {
 			if (!ctx->app_started) {
@@ -206,8 +186,8 @@ MHD_Result App::mhd_connection_handler(void *cls, struct MHD_Connection *connect
 		} else { // Not streamed
 			if (*upload_data_size) { // Read all post data before starting app
 				ctx->processed_post_size += *upload_data_size;
-				if (ctx->processed_post_size > app->config.http.max_post_size) {
-					app->logger_internal->debug("[{} @ {:x}] post exceeded size, terminating connection", ModuleName, (intptr_t)app);
+				if (ctx->processed_post_size > app->config.connection.max_post_size) {
+					app->logger_internal->debug("[{} @ {:x}] POST exceeded size in normal mode, terminating connection", ModuleName, (intptr_t)app);
 
 					return MHD_NO;
 				}
@@ -238,7 +218,7 @@ MHD_Result App::mhd_connection_handler(void *cls, struct MHD_Connection *connect
 }
 
 ssize_t App::mhd_streamed_response_reader(void *cls, uint64_t pos, char *buf, size_t max) {
-	auto *ctx = (Context *)cls;
+	auto *ctx = (ContextExposed *)cls;
 
 	auto &sock = ((ResponseExposed *)&ctx->response)->output_sp.first;
 
@@ -267,7 +247,7 @@ ssize_t App::mhd_streamed_response_reader(void *cls, uint64_t pos, char *buf, si
 }
 
 void App::mhd_streamed_response_read_done(void *cls) {
-	auto *ctx = (Context *)cls;
+	auto *ctx = (ContextExposed *)cls;
 //	auto &sock = ((ResponseContextExposed *)&ctx->response)->output_sp.first;
 	try {
 		((ResponseExposed *) &ctx->response)->output_sp.first.shutdown();
@@ -283,7 +263,7 @@ void App::mhd_streamed_response_read_done(void *cls) {
 void App::mhd_request_completed(void *cls, struct MHD_Connection *connection, void **con_cls, enum MHD_RequestTerminationCode toe) {
 
 	auto *app = (App *)cls;
-	auto *ctx = (Context *)(*con_cls);
+	auto *ctx = (ContextExposed *)(*con_cls);
 
 	if (ctx) {
 		// Ensure socketpairs are disconnected when in streamed mode
@@ -385,7 +365,6 @@ void App::listen_v6(const std::string &address, uint16_t port) {
 void App::set_https_cert(const std::string &str) {
 	https_cert = str;
 	mhd_flags |= MHD_USE_TLS;
-	mhd_flagslot_set(MHD_OPTION_HTTPS_MEM_CERT, (void *)https_cert.c_str());
 }
 
 void App::set_https_cert_file(const std::string &path) {
@@ -395,7 +374,6 @@ void App::set_https_cert_file(const std::string &path) {
 void App::set_https_key(const std::string &str) {
 	https_key = str;
 	mhd_flags |= MHD_USE_TLS;
-	mhd_flagslot_set(MHD_OPTION_HTTPS_MEM_KEY, (void *)https_key.c_str());
 }
 
 void App::set_https_key_file(const std::string &path) {
@@ -404,12 +382,10 @@ void App::set_https_key_file(const std::string &path) {
 
 void App::set_https_key_passwd(const std::string &str) {
 	https_key_passwd = str;
-	mhd_flagslot_set(MHD_OPTION_HTTPS_KEY_PASSWORD, (void *)https_key_passwd.c_str());
 }
 
 void App::set_https_trust(const std::string &str) {
 	https_trust = str;
-	mhd_flagslot_set(MHD_OPTION_HTTPS_MEM_TRUST, (void *)https_trust.c_str());
 }
 
 void App::set_https_trust_file(const std::string &path) {
@@ -430,17 +406,50 @@ void App::start(ssize_t io_thread_count) {
 		throw std::invalid_argument("Please set a listening address before starting server");
 	}
 
+	unsigned long hw_cc = std::thread::hardware_concurrency();
+	logger_internal->info("Your machine's hardware concurrency is {}", hw_cc);
+
 	if (io_thread_count == -1) {
-		io_thread_count = std::thread::hardware_concurrency();
-		logger_internal->info("Your machine's hardware concurrency is {}", io_thread_count);
+		io_thread_count = hw_cc;
 	}
 
-	ignore_sigpipe();
+	unsigned long app_thread_count = 1;
+
+	for (auto &it : route_mapping) {
+		if (!((RouteExposed *)it.second.get())->mode_async) {
+			app_thread_count = hw_cc * config.app.thread_pool_size_ratio;
+			logger_internal->info("Using {} App threads for non-async middlewares", app_thread_count);
+			break;
+		}
+	}
+
+	if (config.ignore_sigpipe)
+		ignore_sigpipe();
+
+	std::vector<MHD_OptionItem> mhd_options;
+
+	if (!https_cert.empty()) {
+		mhd_options.emplace_back(MHD_OptionItem{MHD_OPTION_HTTPS_MEM_CERT, 0, (void *)https_cert.c_str()});
+	}
+
+	if (!https_key.empty()) {
+		mhd_options.emplace_back(MHD_OptionItem{MHD_OPTION_HTTPS_MEM_KEY, 0, (void *)https_key.c_str()});
+	}
+
+	if (!https_key_passwd.empty()) {
+		mhd_options.emplace_back(MHD_OptionItem{MHD_OPTION_HTTPS_KEY_PASSWORD, 0, (void *)https_key_passwd.c_str()});
+	}
+
+	if (!https_trust.empty()) {
+		mhd_options.emplace_back(MHD_OptionItem{MHD_OPTION_HTTPS_MEM_TRUST, 0, (void *)https_trust.c_str()});
+	}
+
+	mhd_options.emplace_back(MHD_OptionItem{MHD_OPTION_END, 0, nullptr});
 
 	logger_internal->info("Starting server on {} with {} I/O threads ...", listen_addr.to_string(), io_thread_count);
 	logger_internal->debug("[{} @ {:x}] start: mhd_flags=0x{:x}", ModuleName, (intptr_t)this, mhd_flags);
 
-	app_thread_pool_ = std::make_unique<ThreadPool>(32);
+	app_thread_pool_ = std::make_unique<ThreadPool>(app_thread_count);
 
 	mhd_daemon = MHD_start_daemon(mhd_flags, 0,
 				      nullptr, nullptr,
@@ -451,14 +460,8 @@ void App::start(ssize_t io_thread_count) {
 				      MHD_OPTION_CONNECTION_TIMEOUT, config.connection.timeout_seconds,
 				      MHD_OPTION_CONNECTION_MEMORY_LIMIT, 128 * 1024,
 				      MHD_OPTION_CONNECTION_MEMORY_INCREMENT, 8192,
-				      mhd_extra_flags[0], mhd_extra_flag_values[0],
-				      mhd_extra_flags[1], mhd_extra_flag_values[1],
-				      mhd_extra_flags[2], mhd_extra_flag_values[2],
-				      mhd_extra_flags[3], mhd_extra_flag_values[3],
-				      mhd_extra_flags[4], mhd_extra_flag_values[4],
-				      mhd_extra_flags[5], mhd_extra_flag_values[5],
-				      mhd_extra_flags[6], mhd_extra_flag_values[6],
-				      mhd_extra_flags[7], mhd_extra_flag_values[7],
+				      MHD_OPTION_CONNECTION_LIMIT, config.connection.max_connections,
+				      MHD_OPTION_ARRAY, mhd_options.data(),
 				      MHD_OPTION_END);
 
 	logger_internal->info("Server successfully started");
