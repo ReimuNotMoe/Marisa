@@ -205,6 +205,16 @@ namespace Marisa {
 		}
 
 		/**
+		 * Retrieve a specific POST data.
+		 *
+		 * Some people like this style of API, so I'll provide one. However this is not efficient.
+		 *
+		 * @return	POST data. Empty key for nonexistent.
+		 *
+		 */
+		PostData post(const std::string& key);
+
+		/**
 		 * All POST data keys of the request. In client sequence.
 		 *
 		 * This function is only available in normal mode. For streamed mode, use read_post().

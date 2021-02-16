@@ -80,6 +80,9 @@ target_link_libraries(example_HelloStreamed marisa)
 add_executable(example_HelloSSL Examples/hello_ssl.cpp)
 target_link_libraries(example_HelloSSL marisa)
 
+add_executable(example_AsyncSuspendResume Examples/async_suspend_resume.cpp)
+target_link_libraries(example_AsyncSuspendResume marisa)
+
 add_executable(example_UsageDemo Examples/usage_demo.cpp)
 target_link_libraries(example_UsageDemo marisa)
 

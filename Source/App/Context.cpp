@@ -12,7 +12,6 @@
 
 #include "Context.hpp"
 #include "App.hpp"
-#include "Middleware.hpp"
 #include "Response.hpp"
 #include "../Util/Util.hpp"
 
@@ -53,20 +52,25 @@ void Context::process_request() {
 }
 
 void Context::start_app() {
-	app_future = app->app_thread_pool().enqueue([this]{
+	if (route->mode_async) {
+		app_started = true;
+		logger->debug("[{} @ {:x}] running app locally", ModuleName, (intptr_t) this);
 		app_container();
-	});
+	} else {
+		logger->debug("[{} @ {:x}] running app in thread pool", ModuleName, (intptr_t) this);
 
-	app_started = true;
+		app_future = app->app_thread_pool().enqueue([this] {
+			app_container();
+		});
 
-	logger->debug("[{} @ {:x}] work posted to thread pool", ModuleName, (intptr_t)this);
-
+		app_started = true;
+	}
 //	app_thread = std::thread(&Context::app_container, this);
 //	app_thread.detach();
 }
 
 void Context::wait_app_terminate() {
-	if (app_started) {
+	if (app_started && !route->mode_async) {
 		app_future.get();
 		logger->debug("[{} @ {:x}] app work terminated", ModuleName, (intptr_t) this);
 	}
@@ -74,13 +78,34 @@ void Context::wait_app_terminate() {
 
 void Context::app_container() noexcept {
 	try {
-		for (current_middleware=0; current_middleware<route->middlewares.size(); current_middleware++) {
-			auto cur_mw = (route->middlewares[current_middleware])->clone();
+		// Check for previously halted middleware
+		if (current_middleware) {
+			// Run it again
+			current_middleware(&request, &response, this);
 
-			logger->debug(R"([{} @ {:x}] calling middleware {} at {:x})", ModuleName, (intptr_t)this, current_middleware, (intptr_t)cur_mw.get());
+			if (process_halted) { // It halted again
+				suspend_connection();
+				app_started = false;
+				logger->debug(R"([{} @ {:x}] middleware processing halted)", ModuleName, (intptr_t)this);
+				return;
+			} else { // It done processing
+				current_middleware_index++;
+			}
+		}
 
-			cur_mw->__load_context(this);
-			cur_mw->handler();
+		for (; current_middleware_index < route->middlewares.size(); current_middleware_index++) {
+			current_middleware = route->middlewares[current_middleware_index];
+
+			logger->debug(R"([{} @ {:x}] calling middleware #{})", ModuleName, (intptr_t)this, current_middleware_index);
+
+			current_middleware(&request, &response, this);
+
+			if (process_halted) {
+				suspend_connection();
+				app_started = false;
+				logger->debug(R"([{} @ {:x}] middleware processing halted)", ModuleName, (intptr_t)this);
+				return;
+			}
 
 			if (static_cast<ResponseExposed &>(response).finalized) {
 				logger->debug(R"([{} @ {:x}] response finalized, not advancing middleware index)", ModuleName, (intptr_t)this);
@@ -93,10 +118,8 @@ void Context::app_container() noexcept {
 			static_cast<ResponseExposed &>(response).end();
 		}
 	} catch (std::exception &e) {
-		logger->error("[{} @ {:x}] uncaught exception in middleware #{} at {:x}: {}", ModuleName, (intptr_t) this, current_middleware,
-			      (intptr_t)route->middlewares[current_middleware].get(), e.what());
+		logger->error("[{} @ {:x}] uncaught exception in middleware #{}: {}", ModuleName, (intptr_t) this, current_middleware_index, e.what());
 	}
-
 
 	logger->debug("[{} @ {:x}] app_container terminated", ModuleName, (intptr_t) this);
 }
@@ -167,9 +190,14 @@ void Context::resume_connection() {
 
 }
 
-void Context::run(Middleware &middleware) {
-	middleware.__load_context(this);
-	middleware.handler();
+void Context::suspend() {
+	process_halted = true;
+}
+
+void Context::resume() {
+	process_halted = false;
+	resume_connection();
+	logger->debug(R"([{} @ {:x}] middleware processing resumed)", ModuleName, (intptr_t)this);
 }
 
 void Context::run(const std::function<void(Request *, Response *, Context *)>& func) {
@@ -179,4 +207,5 @@ void Context::run(const std::function<void(Request *, Response *, Context *)>& f
 Context::~Context() {
 	wait_app_terminate();
 }
+
 

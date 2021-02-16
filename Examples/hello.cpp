@@ -17,7 +17,7 @@ using namespace Marisa;
 int main() {
 	App myapp;
 
-	myapp.route("/").use([](auto *req, auto *rsp, auto *ctx){
+	myapp.route("/").async().use([](auto *req, auto *rsp, auto *ctx){
 		rsp->send("<html><head>"
 			  "<meta http-equiv=\"content-type\" content=\"text/html; charset=UTF-8\">"
 			  "<title>Hello Marisa!</title>"

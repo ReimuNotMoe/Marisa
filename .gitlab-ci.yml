@@ -30,5 +30,5 @@ coverage:
     - cd build
     - sh -c './CoverageTest'
     - lcov -d . -c --output-file app-raw.info
-    - lcov --remove app-raw.info '/usr/include/*' -o app.info
+    - lcov --remove app-raw.info '/usr/include/*' '*/_deps/*' -o app.info
     - lcov -l app.info

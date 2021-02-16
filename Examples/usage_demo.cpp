@@ -12,66 +12,58 @@
 
 #include <Marisa.hpp>
 
-#include <iostream>
 #include <ostream>
 
 using namespace Marisa;
 using namespace Middlewares;
 using namespace Util;
 
-class usage_demo : public Middleware {
-MARISA_MIDDLEWARE_USE_DEFAULT_CLONE
-public:
-	std::string str;
 
-	explicit usage_demo(std::string __str) {
-		str = std::move(__str);
-	}
+int main() {
+	App myapp;
 
-	void handler() override {
+	auto func = [](Request *request, Response *response, Context *context){
 		response->measure_execution_time();
-
-		auto t1 = std::chrono::high_resolution_clock::now();
 
 		std::ostringstream ss;
 		ss << "<html><head>\n"
 		      "<meta http-equiv=\"content-type\" content=\"text/html; charset=UTF-8\">\n"
-		   << "<title>" << str << "</title>\n"
-					  "<style>\n"
-					  " html, body {\n"
-					  "  overflow: hidden;\n"
-					  "  overflow-y: auto;\n"
-					  " }\n"
-					  "\n"
-					  " table {\n"
-					  "  width: 100%;\n"
-					  "  border: none;\n"
-					  "  border-collapse: collapse;\n"
-					  " }\n"
-					  "\n"
-					  " tr:nth-child(2n+1) {\n"
-					  "  border-width: 0;\n"
-					  "  border-style: none;\n"
-					  "  padding: 0;\n"
-					  "  background-color: gainsboro;\n"
-					  " }\n"
-					  "\n"
-					  " tr>th:nth-child(2n+1), tr>td:nth-child(2n+1) {\n"
-					  "  background-color: #0000001f;\n"
-					  "  width: 30%;\n"
-					  " }\n"
-					  "\n"
-					  " th, td {\n"
-					  "  border: none;\n"
-					  "  word-break: break-word;\n"
-					  "  padding: 4px 12px;\n"
-					  " }\n"
-					  "\n"
-					  " code {\n"
-					  "  word-break: break-word;\n"
-					  " }\n"
-					  "</style>"
-					  "</head>";
+		   << "<title>Usage Demo</title>\n"
+		      "<style>\n"
+		      " html, body {\n"
+		      "  overflow: hidden;\n"
+		      "  overflow-y: auto;\n"
+		      " }\n"
+		      "\n"
+		      " table {\n"
+		      "  width: 100%;\n"
+		      "  border: none;\n"
+		      "  border-collapse: collapse;\n"
+		      " }\n"
+		      "\n"
+		      " tr:nth-child(2n+1) {\n"
+		      "  border-width: 0;\n"
+		      "  border-style: none;\n"
+		      "  padding: 0;\n"
+		      "  background-color: gainsboro;\n"
+		      " }\n"
+		      "\n"
+		      " tr>th:nth-child(2n+1), tr>td:nth-child(2n+1) {\n"
+		      "  background-color: #0000001f;\n"
+		      "  width: 30%;\n"
+		      " }\n"
+		      "\n"
+		      " th, td {\n"
+		      "  border: none;\n"
+		      "  word-break: break-word;\n"
+		      "  padding: 4px 12px;\n"
+		      " }\n"
+		      "\n"
+		      " code {\n"
+		      "  word-break: break-word;\n"
+		      " }\n"
+		      "</style>"
+		      "</head>";
 
 		ss << "<body>"
 		      "<h1>Hello world!</h1>"
@@ -171,13 +163,6 @@ public:
 		ss << R"(decodeURIComponent("aa=bb&amp;cc=dd%E5%A4%A7%E8%8A%B1%E7%8C%AB+++") = ")" << decodeURIComponent("aa=bb&cc=dd%E5%A4%A7%E8%8A%B1%E7%8C%AB+++") << "\"<br>";
 		ss << "</code>";
 
-		ss << "<br><br>";
-		ss << "Page generated in: ";
-		auto t2 = std::chrono::high_resolution_clock::now();
-
-		auto duration_ms = (double)std::chrono::duration_cast<std::chrono::microseconds>( t2 - t1 ).count() / 1000;
-		ss << std::to_string(duration_ms);
-		ss << " ms<br><br>";
 //		ss << "base64 encode/decode tests:" << "<br>";
 //		ss << "<code>";
 //		ss << "Base64::Encoder::encode_once(\"The quick brown fox jumps over the lazy dog\") = \"" << Base64::Encoder::encode_once("The quick brown fox jumps over the lazy dog") << "\"<br>";
@@ -188,17 +173,10 @@ public:
 		ss << "</body></html>";
 
 		response->send(ss.str());
-//		response->end();
-	}
-};
+	};
 
-
-int main() {
-	App myapp;
-
-	myapp.route("/:foo/:bar/**").use(usage_demo("Usage demo with path variables"));
-	myapp.route("/**").use(usage_demo("Usage demo"));
-
+	myapp.route("/:foo/:bar/**").use(func);
+	myapp.route("/**").use(func);
 
 	myapp.listen(8080);
 	myapp.start();

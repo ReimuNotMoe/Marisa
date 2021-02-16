@@ -10,93 +10,17 @@
     MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
 */
 
-#include "StaticFiles.hpp"
+#include "Middlewares.hpp"
+
+#include <sys/types.h>
+#include <dirent.h>
 
 static const char ModuleName[] = "StaticFiles";
 
 using namespace Marisa;
-using namespace Middlewares;
-using namespace Util;
+using namespace Marisa::Util;
 
-void StaticFiles::handler() {
-	auto it_path = request->url_vars().find("1");
-
-	if (it_path == request->url_vars().end()) {
-		context->logger->error("[{} @ {:x}] Incorrectly configured route. Please use something like `/foo/bar/**'.", ModuleName, (intptr_t)this);
-		response->status = 500;
-		response->send(default_status_page(response->status));
-		return;
-	}
-
-	auto path = decodeURIComponent(it_path->second);
-
-	// Get rid of script kiddies
-	if (path.find("/../") != std::string::npos) {
-		response->status = 200;
-		response->send("You are a teapot");
-		return;
-	}
-
-	auto full_path = base_path + "/" + path;
-
-	context->logger->debug("[{} @ {:x}] full_path: {}", ModuleName, (intptr_t)this, full_path);
-
-
-	struct stat stat_buf;
-	if (stat(full_path.c_str(), &stat_buf)) {
-		if (errno == ENOENT) {
-			response->status = 404;
-		} else if (errno == EPERM) {
-			response->status = 403;
-		} else {
-			response->status = 500;
-		}
-
-		response->send_status_page();
-		return;
-	}
-
-	DIR *dirp = nullptr;
-
-	if ((dirp = opendir((full_path + "/").c_str()))) { // Directory
-		if (list_files) {
-			generate_file_page(dirp);
-		} else {
-			response->status = 403;
-			response->send_status_page();
-		}
-
-		closedir(dirp);
-	} else { // File
-		if (errno == ENOENT) {
-			response->status = 404;
-		} else if (errno == EPERM) {
-			response->status = 403;
-		} else if (errno == ENOTDIR) {
-			try {
-				auto dot_pos = path.find_last_of('.');
-				if (dot_pos == path.npos)
-					response->header["Content-Type"] = "application/octet-stream";
-				else
-					response->header["Content-Type"] = mime_type(path.substr(dot_pos + 1));
-
-				response->send_file(full_path);
-				return;
-			} catch (std::system_error& e) {
-				context->logger->error("[{} @ {:x}] send_file error: {}", ModuleName, (intptr_t)this, e.what());
-				response->status = 500;
-				response->send_status_page();
-				return;
-			}
-		} else {
-			response->status = 500;
-		}
-		response->send_status_page();
-		return;
-	}
-}
-
-void StaticFiles::generate_file_page(DIR *__dirp) {
+static void generate_file_page(const std::string& base_path, DIR *__dirp, Request *request, Response *response, Context *context) {
 	errno = 0;
 
 	std::stringstream ss;
@@ -217,4 +141,87 @@ void StaticFiles::generate_file_page(DIR *__dirp) {
 	      "</body></html>";
 
 	response->send(ss.str());
+}
+
+std::function<void(Request *, Response *, Context *)> Middlewares::StaticFiles(std::string base_path, bool list_files) {
+	return [ctx = std::make_shared<std::pair<std::string, bool>>(std::move(base_path), list_files)](Request *request, Response *response, Context *context){
+		auto &base_path = ctx->first;
+		auto &list_files = ctx->second;
+
+		auto it_path = request->url_vars().find("1");
+
+		if (it_path == request->url_vars().end()) {
+			context->logger->error("[{} @ ?] Incorrectly configured route. Please use something like `/foo/bar/**'.", ModuleName);
+			response->status = 500;
+			response->send(default_status_page(response->status));
+			return;
+		}
+
+		auto path = decodeURIComponent(it_path->second);
+
+		// Get rid of script kiddies
+		if (path.find("/../") != std::string::npos) {
+			response->status = 200;
+			response->send("You are a teapot");
+			return;
+		}
+
+		auto full_path = base_path + "/" + path;
+
+		context->logger->debug("[{} @ ?] full_path: {}", ModuleName, full_path);
+
+
+		struct stat stat_buf;
+		if (stat(full_path.c_str(), &stat_buf)) {
+			if (errno == ENOENT) {
+				response->status = 404;
+			} else if (errno == EPERM) {
+				response->status = 403;
+			} else {
+				response->status = 500;
+			}
+
+			response->send_status_page();
+			return;
+		}
+
+		DIR *dirp = nullptr;
+
+		if ((dirp = opendir((full_path + "/").c_str()))) { // Directory
+			if (list_files) {
+				generate_file_page(base_path, dirp, request, response, context);
+			} else {
+				response->status = 403;
+				response->send_status_page();
+			}
+
+			closedir(dirp);
+		} else { // File
+			if (errno == ENOENT) {
+				response->status = 404;
+			} else if (errno == EPERM) {
+				response->status = 403;
+			} else if (errno == ENOTDIR) {
+				try {
+					auto dot_pos = path.find_last_of('.');
+					if (dot_pos == path.npos)
+						response->header["Content-Type"] = "application/octet-stream";
+					else
+						response->header["Content-Type"] = mime_type(path.substr(dot_pos + 1));
+
+					response->send_file(full_path);
+					return;
+				} catch (std::system_error& e) {
+					context->logger->error("[{} @ ?] send_file error: {}", ModuleName, e.what());
+					response->status = 500;
+					response->send_status_page();
+					return;
+				}
+			} else {
+				response->status = 500;
+			}
+			response->send_status_page();
+			return;
+		}
+	};
 }

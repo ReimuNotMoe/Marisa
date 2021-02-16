@@ -33,9 +33,9 @@ namespace Marisa {
 	class RequestExposed;
 
 	class Context {
+	protected:
+		bool process_halted = false;
 	public:
-		std::atomic<int> reference_count = 0;
-
 		App *app = nullptr;
 		RouteExposed *route = nullptr;
 
@@ -49,7 +49,8 @@ namespace Marisa {
 
 		bool app_started = false;
 
-		size_t current_middleware = 0;
+		size_t current_middleware_index = 0;
+		std::function<void(Request *, Response *, Context *)> current_middleware;
 
 		std::future<void> app_future;
 
@@ -76,6 +77,26 @@ namespace Marisa {
 		void process_request();
 
 		/**
+		 * Halt the processing of middleware chain.
+		 *
+		 * Has no effect on currently running middleware.
+		 * When resumed, current middleware will be executed again.
+		 *
+		 *
+		 */
+		void suspend();
+
+		/**
+		 * Resume the processing of middleware chain.
+		 *
+		 * Usually called from another thread.
+		 * When resumed, last executed middleware will be executed again.
+		 *
+		 *
+		 */
+		void resume();
+
+		/**
 		 * Run another middleware in current context.
 		 *
 		 * Remember to supply the middleware with its constructor. Such as: run(foo("Bar"));
@@ -83,7 +104,7 @@ namespace Marisa {
 		 * @param middleware The middleware to run.
 		 *
 		 */
-		void run(Middleware &middleware);
+		void run(Middleware &&middleware);
 
 		/**
 		 * Run another middleware (lambda style) in current context.

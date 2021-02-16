@@ -20,8 +20,7 @@ int main() {
 	App myapp;
 
 	myapp.route("/files/**").use(StaticFiles("/tmp", true));
-
-//	myapp.route("/files").on("*").use(Redirection("/files/", 301));
+	myapp.route("*").use(Redirection("/files/", 302));
 
 	myapp.listen(8080);
 	myapp.start();

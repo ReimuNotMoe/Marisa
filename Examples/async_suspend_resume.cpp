@@ -10,14 +10,33 @@
     MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
 */
 
-#include "Middleware.hpp"
-#include "Context.hpp"
+#include <Marisa.hpp>
 
 using namespace Marisa;
 
-void Middleware::__load_context(Context *__context) noexcept {
-	context = __context;
-	request = &context->request;
-	response = &context->response;
-}
+int main() {
+	App myapp;
 
+	myapp.route("/").async().use([state = 0](auto *req, Response *rsp, Context *ctx) mutable {
+		if (!state) {
+			std::thread ([&, ctx]{
+				// Do some blocking stuff here
+				sleep(3);
+				state = 1;
+				ctx->resume();
+			}).detach();
+
+			ctx->suspend();
+			puts("suspend!");
+		} else {
+			rsp->send("I'm back!");
+		}
+	});
+
+	myapp.listen(8080);
+	myapp.start();
+
+	while (1) {
+		sleep(-1);
+	}
+}

@@ -35,6 +35,16 @@ void Request::init() {
 	}
 }
 
+Request::PostData Request::post(const std::string &key) {
+	auto it = post_cache.find(key);
+
+	if (it != post_cache.end()) {
+		return it->second;
+	} else {
+		return {};
+	}
+}
+
 const std::unordered_map<std::string_view, std::string_view> &Request::header() {
 	if (header_cache.empty()) {
 		MHD_get_connection_values(((Context *)context)->mhd_conn, MHD_HEADER_KIND, &mhd_header_cb, this);
@@ -268,8 +278,7 @@ MHD_Result Request::mhd_cookie_key_cb(void *cls, enum MHD_ValueKind kind, const 
 }
 
 MHD_Result
-Request::mhd_post_processor(void *cls, enum MHD_ValueKind kind, const char *key, const char *filename, const char *content_type, const char *transfer_encoding, const char *data,
-			    uint64_t off, size_t size) {
+Request::mhd_post_processor(void *cls, enum MHD_ValueKind kind, const char *key, const char *filename, const char *content_type, const char *transfer_encoding, const char *data, uint64_t off, size_t size) {
 	auto *ctx = (Request *)cls;
 
 	if (key) {
@@ -313,4 +322,8 @@ MHD_Result Request::mhd_streamed_post_processor(void *cls, enum MHD_ValueKind ki
 
 	return MHD_YES;
 }
+
+
+
+
 

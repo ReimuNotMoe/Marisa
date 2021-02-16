@@ -10,12 +10,14 @@
     MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
 */
 
-#include "Redirection.hpp"
+#include "Middlewares.hpp"
 
-using namespace Marisa::Middlewares;
+using namespace Marisa;
 
-void Redirection::handler() {
-	response->header["Location"] = std::move(location);
-	response->status = status_code;
-	response->end();
+std::function<void(Request *, Response *, Context *)> Middlewares::Redirection(std::string location, int status_code) {
+	return [ctx = std::make_shared<std::pair<std::string, int>>(std::move(location), status_code)](Request *request, Response *response, Context *context){
+		response->header["Location"] = ctx->first;
+		response->status = ctx->second;
+		response->end();
+	};
 }

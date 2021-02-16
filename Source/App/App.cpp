@@ -136,7 +136,7 @@ MHD_Result App::mhd_connection_handler(void *cls, struct MHD_Connection *connect
 			if (!ctx->app_started) {
 //				ctx->suspend_connection();
 				ctx->start_app();
-				app->logger_internal->debug("[{} @ {:x}] App started in STREAM mode", ModuleName, (intptr_t)app);
+				app->logger_internal->debug("[{} @ {:x}] start_app called in STREAMED mode", ModuleName, (intptr_t)app);
 			}
 
 			auto &socket_input = ((RequestExposed *)&ctx->request)->input_sp.first;
@@ -227,7 +227,7 @@ MHD_Result App::mhd_connection_handler(void *cls, struct MHD_Connection *connect
 				if (!ctx->app_started) {
 					ctx->suspend_connection();
 					ctx->start_app();
-					app->logger_internal->debug("[{} @ {:x}] App started in NORMAL mode", ModuleName, (intptr_t)app);
+					app->logger_internal->debug("[{} @ {:x}] start_app called in NORMAL mode", ModuleName, (intptr_t)app);
 
 				}
 				return MHD_YES;

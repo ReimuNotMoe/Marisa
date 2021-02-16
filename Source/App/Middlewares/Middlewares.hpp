@@ -12,11 +12,17 @@
 
 #pragma once
 
-//#include "Compression.hpp"
+#include "../Context.hpp"
+#include "../../Util/Util.hpp"
+#include "../../Version.hpp"
 
-#include "StaticFiles.hpp"
-#include "Redirection.hpp"
-#include "Websocket.hpp"
-#include "Dashboard.hpp"
-#include "Simple.hpp"
-#include "Lambda.hpp"
+
+namespace Marisa::Middlewares {
+
+	extern std::function<void(Request *, Response *, Context *)> Dashboard();
+	extern std::function<void(Request *, Response *, Context *)> Redirection(std::string location, int status_code = 302);
+	extern std::function<void(Request *, Response *, Context *)> Simple(std::string str);
+	extern std::function<void(Request *, Response *, Context *)> StaticFiles(std::string base_path, bool list_files = false);
+	extern std::function<void(Request *, Response *, Context *)> Websocket();
+
+}

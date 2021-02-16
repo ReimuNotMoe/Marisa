@@ -13,7 +13,6 @@
 #pragma once
 
 #include "../CommonIncludes.hpp"
-#include "Middleware.hpp"
 
 namespace Marisa {
 	class Middleware;
@@ -24,17 +23,16 @@ namespace Marisa {
 	class Route {
 	protected:
 		std::optional<std::vector<std::string>> path_keys;
-		std::vector<std::unique_ptr<Middleware>> middlewares;
+		std::vector<std::function<void(Request *, Response *, Context *)>> middlewares;
 		bool mode_streamed = false;
-		bool mode_nonblocking = false;
+		bool mode_async = false;
 
 	public:
 		Route() = default;
 
-		Route &stream();
-		Route &nonblocking();
 
-		Route& use(const Middleware& middleware);
+		Route &stream();
+		Route &async();
 
 		Route& use(std::function<void(Request *, Response *, Context *)> func);
 	};
@@ -44,7 +42,7 @@ namespace Marisa {
 		using Route::path_keys;
 		using Route::middlewares;
 		using Route::mode_streamed;
-		using Route::mode_nonblocking;
+		using Route::mode_async;
 
 	};
 

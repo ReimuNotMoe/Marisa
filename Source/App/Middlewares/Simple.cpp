@@ -10,9 +10,12 @@
     MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
 */
 
-#include "Simple.hpp"
+#include "Middlewares.hpp"
 
-void Marisa::Middlewares::Simple::handler() {
-	response->send_persistent(contents->c_str(), contents->size());
+using namespace Marisa;
+
+std::function<void(Request *, Response *, Context *)> Middlewares::Simple(std::string str) {
+	return [str_ = std::make_shared<std::string>(std::move(str))](Request *request, Response *response, Context *context){
+		response->send_persistent(str_->data(), str_->size());
+	};
 }
-

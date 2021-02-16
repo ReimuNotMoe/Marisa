@@ -11,7 +11,6 @@
 */
 
 #include "Route.hpp"
-#include "Middlewares/Lambda.hpp"
 
 using namespace Marisa;
 
@@ -20,19 +19,12 @@ Route &Route::stream() {
 	return *this;
 }
 
-Route &Route::nonblocking() {
-	mode_nonblocking = true;
-	return *this;
-}
-
-Route &Route::use(const Middleware &middleware) {
-	middlewares.emplace_back(middleware.clone());
+Route &Route::async() {
+	mode_async = true;
 	return *this;
 }
 
 Route &Route::use(std::function<void(Request *, Response *, Context *)> func) {
-	middlewares.emplace_back(std::make_unique<Middlewares::Lambda>(std::move(func)));
+	middlewares.emplace_back(std::move(func));
 	return *this;
 }
-
-

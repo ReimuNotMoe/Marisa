@@ -10,18 +10,20 @@
     MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
 */
 
-#include "Websocket.hpp"
+#include "Middlewares.hpp"
 
-using namespace Marisa::Middlewares;
+using namespace Marisa;
 
-void Websocket::handler() {
-	auto ws_ver = request->header("Sec-WebSocket-Version");
-	auto ws_key = request->header("Sec-WebSocket-Key");
+std::function<void(Request *, Response *, Context *)> Middlewares::Websocket() {
+	return [](Request *request, Response *response, Context *context) {
+		auto ws_ver = request->header("Sec-WebSocket-Version");
+		auto ws_key = request->header("Sec-WebSocket-Key");
 
-	if (request->method() != "GET" || ws_ver.empty() || ws_key.empty()) {
-		response->status = 400;
-		response->end();
-	} else {
-		response->upgrade();
-	}
+		if (request->method() != "GET" || ws_ver.empty() || ws_key.empty()) {
+			response->status = 400;
+			response->end();
+		} else {
+			response->upgrade();
+		}
+	};
 }
