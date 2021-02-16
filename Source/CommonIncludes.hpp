@@ -34,6 +34,7 @@
 #include <cstdlib>
 #include <cassert>
 
+#include <errno.h>
 #include <fcntl.h>
 #include <unistd.h>
 #include <sys/stat.h>
@@ -47,7 +48,9 @@
 #define MHD_Result int
 #endif
 
-#include <gcrypt.h>
+#ifdef __CYGWIN__
+#define ERESTART 85
+#endif
 
 #include <IODash.hpp>
 #include <ReGlob.hpp>
