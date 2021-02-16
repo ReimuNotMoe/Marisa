@@ -3,7 +3,6 @@ image: ubuntu:20.04
 stages:
   - build
   - test
-#  - package
 
 build:
   stage: build
@@ -15,7 +14,7 @@ build:
   artifacts:
     untracked: true
   script:
-    - mkdir build && cd build && cmake -DCMAKE_BUILD_TYPE=Debug -DCMAKE_CXX_FLAGS='-O0 -g -pg -fprofile-arcs -ftest-coverage' -DCMAKE_EXE_LINKER_FLAGS=-pg -DCMAKE_SHARED_LINKER_FLAGS=-pg .. && make
+    - mkdir build && cd build && cmake -DCMAKE_BUILD_TYPE=Debug -DBUILD_COVERAGE=ON -DCMAKE_CXX_FLAGS='-O0 -g -pg -fprofile-arcs -ftest-coverage' -DCMAKE_EXE_LINKER_FLAGS=-pg -DCMAKE_SHARED_LINKER_FLAGS=-pg .. && make
 
 coverage:
   stage: test

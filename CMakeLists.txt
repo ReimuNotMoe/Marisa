@@ -74,13 +74,17 @@ add_library(marisa ${SOURCE_FILES})
 target_include_directories(marisa INTERFACE Source/)
 target_link_libraries(marisa pthread fmt cpp-base64X IODash ReGlob ${LIBMICROHTTPD_LIBRARIES})
 
+OPTION(BUILD_COVERAGE "Build coverage test" OFF)
+
+if (BUILD_COVERAGE)
+    add_executable(CoverageTest Tests/coverage.cpp)
+    target_link_libraries(CoverageTest marisa gcov)
+
+    add_test(NAME Coverage COMMAND CoverageTest)
+endif (BUILD_COVERAGE)
+
 add_executable(test_thebenchmarker_webframeworks Tests/thebenchmarker_webframeworks_test.cpp)
 target_link_libraries(test_thebenchmarker_webframeworks marisa)
-
-add_executable(CoverageTest Tests/coverage.cpp)
-target_link_libraries(CoverageTest marisa gcov)
-
-add_test(NAME Coverage COMMAND CoverageTest)
 
 add_executable(example_Hello Examples/hello.cpp)
 target_link_libraries(example_Hello marisa)
