@@ -10,7 +10,29 @@
     MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
 */
 
-#include "Buffer.hpp"
+#include <Marisa.hpp>
 
 using namespace Marisa;
 
+int main() {
+	App myapp;
+
+	myapp.route("/").async().use([](auto *req, auto *rsp, Context *ctx){
+		rsp->send("");
+	});
+
+	myapp.route("/user/:id").async().use([](Request *req, auto *rsp, auto *ctx){
+		rsp->send(req->url_vars()["id"]);
+	});
+
+	myapp.route("/user").async().use([](auto *req, Response *rsp, auto *ctx){
+		rsp->send("");
+	});
+
+	myapp.listen(3000);
+	myapp.start();
+
+	while (1) {
+		sleep(-1);
+	}
+}

@@ -43,6 +43,10 @@ namespace Marisa {
 		}
 
 		void insert(const void *buf, size_t len) {
+			if (!len) {
+				return;
+			}
+
 			auto offset = size_;
 			size_ += len;
 

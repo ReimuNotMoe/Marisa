@@ -18,12 +18,14 @@ CPMAddPackage(
         NAME IODash
         GITHUB_REPOSITORY YukiWorkshop/IODash
         VERSION 0.1.7
+        GIT_SHALLOW ON
 )
 
 CPMAddPackage(
         NAME ReGlob
         GITHUB_REPOSITORY SudoMaker/ReGlob
         VERSION 0.0.5
+        GIT_SHALLOW ON
 )
 
 CPMAddPackage(
@@ -31,6 +33,7 @@ CPMAddPackage(
         GITHUB_REPOSITORY progschj/ThreadPool
         VERSION 1.0.0
         GIT_TAG 9a42ec1329f259a5f4881a291db1dcb8f2ad9040
+        GIT_SHALLOW ON
 )
 
 CPMAddPackage(
@@ -38,6 +41,7 @@ CPMAddPackage(
         GITHUB_REPOSITORY fmtlib/fmt
         VERSION 7.1.3
         GIT_TAG 7bdf0628b1276379886c7f6dda2cef2b3b374f0b
+        GIT_SHALLOW ON
 )
 
 add_definitions(-DSPDLOG_FMT_EXTERNAL)
@@ -47,12 +51,14 @@ CPMAddPackage(
         NAME spdlog
         GITHUB_REPOSITORY gabime/spdlog
         VERSION 1.8.2
+        GIT_SHALLOW ON
 )
 
 CPMAddPackage(
         NAME cpp-base64X
         GITHUB_REPOSITORY YukiWorkshop/cpp-base64X
         VERSION 0.0.2
+        GIT_SHALLOW ON
 )
 
 include(CMake/FindMHD.cmake)
@@ -67,6 +73,9 @@ include_directories(${cpp-base64X_SOURCE_DIR})
 add_library(marisa ${SOURCE_FILES})
 target_include_directories(marisa INTERFACE Source/)
 target_link_libraries(marisa pthread fmt cpp-base64X IODash ReGlob ${LIBMICROHTTPD_LIBRARIES})
+
+add_executable(test_thebenchmarker_webframeworks Tests/thebenchmarker_webframeworks_test.cpp)
+target_link_libraries(test_thebenchmarker_webframeworks marisa)
 
 add_executable(CoverageTest Tests/coverage.cpp)
 target_link_libraries(CoverageTest marisa gcov)
