@@ -93,7 +93,7 @@ void Response::write(const void *buf, size_t len) {
 					output_sp.second.close();
 					break;
 				} else {
-					if (errno == EWOULDBLOCK || errno == EAGAIN || errno == ERESTART) {
+					if (errno == EWOULDBLOCK || errno == EAGAIN || errno == EINTR) {
 						logger->debug(R"([{} @ {:x}] write EAGAIN, resume_connection)", ModuleName, (intptr_t)this);
 
 						((ContextExposed *) context)->resume_connection();

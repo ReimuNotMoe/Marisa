@@ -139,9 +139,11 @@ MHD_Result App::mhd_connection_handler(void *cls, struct MHD_Connection *connect
 					app->logger_internal->debug("[{} @ {:x}] rc_send returned 0 (other end close), terminating connection", ModuleName, (intptr_t)app);
 					return MHD_NO;
 				} else {
-					if (errno == EWOULDBLOCK || errno == EAGAIN || errno == ERESTART) {
+					if (errno == EWOULDBLOCK || errno == EAGAIN) {
 						app->logger_internal->debug("[{} @ {:x}] rc_send errno is EAGAIN, suspend connection", ModuleName, (intptr_t)app);
 						ctx->suspend_connection();
+						return MHD_YES;
+					} else if (errno == EINTR) {
 						return MHD_YES;
 					} else {
 						app->logger_internal->debug("[{} @ {:x}] rc_send errno is {}, terminating connection", ModuleName, (intptr_t)app, errno);
@@ -235,9 +237,11 @@ ssize_t App::mhd_streamed_response_reader(void *cls, uint64_t pos, char *buf, si
 		ctx->app->logger_internal->debug(R"([{} @ {:x}] streamed_response_reader: all data read)", ModuleName, (intptr_t)ctx->app);
 		return MHD_CONTENT_READER_END_OF_STREAM;
 	} else {
-		if (errno == EWOULDBLOCK || errno == EAGAIN || errno == ERESTART) {
+		if (errno == EWOULDBLOCK || errno == EAGAIN) {
 			ctx->app->logger_internal->debug(R"([{} @ {:x}] streamed_response_reader: read EAGAIN)", ModuleName, (intptr_t)ctx->app);
 			ctx->suspend_connection();
+			return 0;
+		} else if (errno == EINTR) {
 			return 0;
 		} else {
 			ctx->app->logger_internal->error(R"([{} @ {:x}] streamed_response_reader: read errno: {})", ModuleName, (intptr_t)ctx->app, errno);
@@ -464,13 +468,14 @@ void App::start(ssize_t io_thread_count) {
 				      MHD_OPTION_ARRAY, mhd_options.data(),
 				      MHD_OPTION_END);
 
-	logger_internal->info("Server successfully started");
-
 	logger_internal->debug("[{} @ {:x}] start: mhd_daemon=0x{:x}", ModuleName, (intptr_t)this, (intptr_t)mhd_daemon);
 
 	if (!mhd_daemon) {
 		throw std::logic_error("Failed to start server");
 	}
+
+	logger_internal->info("Server successfully started");
+
 }
 
 void App::stop() {

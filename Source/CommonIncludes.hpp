@@ -48,10 +48,6 @@
 #define MHD_Result int
 #endif
 
-#ifdef __CYGWIN__
-#define ERESTART 85
-#endif
-
 #include <IODash.hpp>
 #include <ReGlob.hpp>
 
