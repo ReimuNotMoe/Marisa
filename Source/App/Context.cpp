@@ -200,10 +200,6 @@ void Context::resume() {
 	logger->debug(R"([{} @ {:x}] middleware processing resumed)", ModuleName, (intptr_t)this);
 }
 
-void Context::run(const std::function<void(Request *, Response *, Context *)>& func) {
-	func(&request, &response, this);
-}
-
 Context::~Context() {
 	wait_app_terminate();
 }

@@ -96,24 +96,6 @@ namespace Marisa {
 		 */
 		void resume();
 
-		/**
-		 * Run another middleware in current context.
-		 *
-		 * Remember to supply the middleware with its constructor. Such as: run(foo("Bar"));
-		 *
-		 * @param middleware The middleware to run.
-		 *
-		 */
-		void run(Middleware &&middleware);
-
-		/**
-		 * Run another middleware (lambda style) in current context.
-		 *
-		 * @param func The middleware to run.
-		 *
-		 */
-		void run(const std::function<void(Request *, Response *, Context *)>& func);
-
 	public:
 		explicit Context(App *__app, struct MHD_Connection *__mhd_conn, const char *__mhd_url, const char *__mhd_method, const char *__mhd_version);
 

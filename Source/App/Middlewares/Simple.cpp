@@ -15,7 +15,7 @@
 using namespace Marisa;
 
 std::function<void(Request *, Response *, Context *)> Middlewares::Simple(std::string str) {
-	return [str_ = std::make_shared<std::string>(std::move(str))](Request *request, Response *response, Context *context){
+	return [str_ = std::make_shared<std::string>(std::move(str))](Request *request, Response *response, Context *context) {
 		response->send_persistent(str_->data(), str_->size());
 	};
 }

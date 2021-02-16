@@ -19,16 +19,20 @@ int main() {
 
 	myapp.route("/").async().use([state = 0](auto *req, Response *rsp, Context *ctx) mutable {
 		if (!state) {
+			// [1]
 			std::thread ([&, ctx]{
+				// [3]
 				// Do some blocking stuff here
 				sleep(3);
 				state = 1;
 				ctx->resume();
 			}).detach();
 
+			// [2]
 			ctx->suspend();
 			puts("suspend!");
 		} else {
+			// [4]
 			rsp->send("I'm back!");
 		}
 	});

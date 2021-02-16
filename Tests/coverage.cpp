@@ -47,12 +47,12 @@ int main() {
 
 	myapp.route("/no_middlewares");
 
-	myapp.route("/inline_run1").use([](auto req, auto rsp, Context *ctx){
-		ctx->run(Simple("Hello Marisa"));
+	myapp.route("/inline_run1").use([func = Simple("Hello Marisa")](auto req, auto rsp, Context *ctx){
+		func(req, rsp, ctx);
 	});
 
 	myapp.route("/inline_run2").use([](auto req, auto rsp, Context *ctx){
-		ctx->run([](Request *req, auto rsp, Context *ctx){
+		[](Request *req, auto rsp, Context *ctx){
 			std::string a = "aaa";
 
 			rsp->write(a);
@@ -102,7 +102,7 @@ int main() {
 			}
 
 			rsp->write("Hello Marisa");
-		});
+		}(req, rsp, ctx);
 	});
 
 	auto func = [](Request *request, Response *response, Context *context){
