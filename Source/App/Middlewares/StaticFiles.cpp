@@ -127,7 +127,7 @@ static void generate_file_page(const std::string& base_path, DIR *__dirp, Reques
 		mtim_ = sbuf.st_mtim;
 #endif
 
-		ss << JSDate(&mtim_).toGoodString();
+		ss << "TODO";
 		ss << "</th>"
 		      "<th>";
 		ss << sbuf.st_size;

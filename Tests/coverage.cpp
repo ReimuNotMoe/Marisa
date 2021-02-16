@@ -21,25 +21,6 @@ using namespace Middlewares;
 using namespace Util;
 
 int main() {
-
-	JSDate d0("Fri, 05 Jul 2019 07:47:57 GMT");
-	JSDate dNow;
-
-	std::cout << dNow.toString() << "\n";
-	std::cout << dNow.toDateString() << "\n";
-	std::cout << dNow.toGMTString() << "\n";
-	std::cout << dNow.toGoodString() << "\n";
-	std::cout << dNow.toISOString() << "\n";
-
-	JSDate d1;
-
-	d1.assign_jstime(0);
-	d1.assign_unixtime(0);
-
-	timespec ts1;
-	clock_gettime(CLOCK_REALTIME, &ts1);
-	d1.assign_timespec(&ts1);
-
 	const char static_arr[] = "Hello Marisa";
 	std::vector<uint8_t> vec;
 	vec.insert(vec.end(), static_arr, static_arr+sizeof(static_arr)-1);

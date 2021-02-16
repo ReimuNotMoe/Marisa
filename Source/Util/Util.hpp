@@ -28,37 +28,6 @@ namespace Marisa {
 			}
 		};
 
-		class JSDate {
-		protected:
-			bool valid = true;
-			timespec time_{0};
-
-		public:
-			JSDate();
-
-			JSDate(const std::string &__str);
-			JSDate(timespec *__ts);
-
-			void assign(const std::string &__str);
-			void assign_unixtime(time_t __t) noexcept;
-			void assign_timespec(timespec *__ts) noexcept;
-			void assign_jstime(uint64_t __t) noexcept;
-
-			std::string toGMTString() const noexcept; // JS style
-			std::string toISOString() const noexcept; // JS style
-			std::string toString() const noexcept; // JS style
-			std::string toDateString() const noexcept; // JS style
-
-			std::string toGoodString() const noexcept;
-
-			const int64_t getTime() const noexcept; // JS style
-			const time_t getTimeSeconds() const noexcept; // JS style
-
-			const timespec& get_timespec() const noexcept;
-
-		};
-
-
 		template<typename T>
 		static void explode_string(const std::string &s, char delim, T result) {
 			std::stringstream ss(s);
