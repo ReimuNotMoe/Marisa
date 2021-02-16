@@ -55,9 +55,10 @@
 #include <IODash.hpp>
 #include <ReGlob.hpp>
 
-#include <fmt/core.h>
-
 #include <ThreadPool.h>
+
+#include <fmt/core.h>
+#include <fmt/format.h>
 
 #include <spdlog/spdlog.h>
 #include <spdlog/sinks/stdout_color_sinks.h>

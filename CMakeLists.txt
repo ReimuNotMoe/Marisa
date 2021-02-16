@@ -40,6 +40,9 @@ CPMAddPackage(
         GIT_TAG 7bdf0628b1276379886c7f6dda2cef2b3b374f0b
 )
 
+add_definitions(-DSPDLOG_FMT_EXTERNAL)
+include_directories(${fmt_SOURCE_DIR}/include)
+
 CPMAddPackage(
         NAME spdlog
         GITHUB_REPOSITORY gabime/spdlog
@@ -57,14 +60,13 @@ include(CMake/FindMHD.cmake)
 file(GLOB_RECURSE SOURCE_FILES "Source/*.cpp" "Source/*.hpp")
 
 include_directories(${LIBMICROHTTPD_INCLUDE_DIR})
-include_directories(${fmt_SOURCE_DIR}/include)
 include_directories(${spdlog_SOURCE_DIR}/include)
 include_directories(${ThreadPool_SOURCE_DIR})
 include_directories(${cpp-base64X_SOURCE_DIR})
 
 add_library(marisa ${SOURCE_FILES})
 target_include_directories(marisa INTERFACE Source/)
-target_link_libraries(marisa pthread z fmt cpp-base64X IODash ReGlob ${LIBMICROHTTPD_LIBRARIES})
+target_link_libraries(marisa pthread fmt cpp-base64X IODash ReGlob ${LIBMICROHTTPD_LIBRARIES})
 
 add_executable(CoverageTest Tests/coverage.cpp)
 target_link_libraries(CoverageTest marisa gcov)
