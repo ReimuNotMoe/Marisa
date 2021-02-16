@@ -329,7 +329,7 @@ int main() {
 
 	sleep(2);
 
-	std::string cmd_get_prefix = "curl -v -H 'Cookie: aaa=bbb;ccc=ddd' 127.0.0.1:46878/";
+	std::string cmd_get_prefix = "curl -v -H 'Cookie: aaa=bbb;ccc=ddd' -o /dev/null 127.0.0.1:46878/";
 
 	for (auto &url : {"no_middlewares", "inline_run1", "inline_run2",
 			  "usage_demo", "simple", "lambda",
@@ -344,14 +344,14 @@ int main() {
 		system(t.c_str());
 	}
 
-	system(R"(curl -v -X POST -d '{"key1":"value1", "key2":"value2"}' -H "Content-Type: application/json" 127.0.0.1:46878/inline_run2)");
+	system(R"(curl -v -X POST -d '{"key1":"value1", "key2":"value2"}' -o /dev/null -H "Content-Type: application/json" 127.0.0.1:46878/inline_run2)");
 //
 //	system("curl -v -H 'Accept-Encoding: gzip, deflate' 127.0.0.1:46878/noyield_lambda_send_compressed");
 //	system("curl -v -H 'Accept-Encoding: deflate, gzip' 127.0.0.1:46878/noyield_lambda_send_compressed");
 //	system("curl -v -H 'Accept-Encoding: deflate' 127.0.0.1:46878/noyield_lambda_send_compressed");
 //	system("curl -v -H 'Accept-Encoding: gzip' 127.0.0.1:46878/noyield_lambda_send_compressed");
 //
-	system("curl -v -X POST -F 'data=@CMakeCache.txt' 127.0.0.1:46878/streamed_fileupload");
+	system("curl -v -X POST -F 'data=@CMakeCache.txt' -o /dev/null 127.0.0.1:46878/streamed_fileupload");
 //	system("curl -v -X POST -F 'data=@CMakeCache.txt' 127.0.0.1:46878/async_streamed_fileupload");
 //
 //	system("nc -nv -w 20 127.0.0.1 46878");
