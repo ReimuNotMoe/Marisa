@@ -64,7 +64,7 @@ namespace Marisa {
 
 		bool finalized = false;
 
-		std::optional<std::chrono::system_clock::time_point> time_start;
+		std::optional<std::chrono::time_point<std::chrono::high_resolution_clock>> time_start;
 
 		void init();
 
